@@ -22,6 +22,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Login />} />
           <Route path="/thread/:slug" element={<ThreadDetail />} />
           <Route path="/create" element={<CreateEntry />} />
           <Route path="/profile" element={<Profile />} />
