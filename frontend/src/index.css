@@ -1,0 +1,150 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* MIDNIGHT FORGE — terminal noir design system. All colors HSL. */
+
+@layer base {
+  :root {
+    /* Forge dark palette */
+    --background: 220 15% 6%;
+    --foreground: 30 25% 92%;
+
+    --card: 220 15% 8%;
+    --card-foreground: 30 25% 92%;
+
+    --popover: 220 18% 9%;
+    --popover-foreground: 30 25% 92%;
+
+    /* Signal orange */
+    --primary: 18 85% 60%;
+    --primary-foreground: 220 20% 8%;
+    --primary-glow: 22 95% 68%;
+    --primary-deep: 14 70% 45%;
+
+    --secondary: 220 14% 12%;
+    --secondary-foreground: 30 20% 88%;
+
+    --muted: 220 14% 11%;
+    --muted-foreground: 30 10% 55%;
+
+    --accent: 18 85% 60%;
+    --accent-foreground: 220 20% 8%;
+
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 30 25% 95%;
+
+    --border: 220 14% 14%;
+    --input: 220 14% 12%;
+    --ring: 18 85% 60%;
+
+    --radius: 0.25rem;
+
+    /* Terminal-specific */
+    --terminal: 220 18% 5%;
+    --terminal-foreground: 30 25% 88%;
+    --grid-line: 18 60% 50%;
+    --success: 145 65% 50%;
+
+    /* Gradients */
+    --gradient-signal: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
+    --gradient-fade: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(220 18% 4%) 100%);
+    --gradient-panel: linear-gradient(180deg, hsl(220 15% 9%) 0%, hsl(220 15% 7%) 100%);
+
+    /* Shadows */
+    --shadow-signal: 0 0 30px -5px hsl(var(--primary) / 0.4);
+    --shadow-panel: 0 8px 40px -12px hsl(0 0% 0% / 0.6);
+    --glow-text: 0 0 20px hsl(var(--primary) / 0.5);
+
+    /* Sidebar */
+    --sidebar-background: 220 18% 5%;
+    --sidebar-foreground: 30 15% 80%;
+    --sidebar-primary: 18 85% 60%;
+    --sidebar-primary-foreground: 220 20% 8%;
+    --sidebar-accent: 220 14% 11%;
+    --sidebar-accent-foreground: 30 25% 92%;
+    --sidebar-border: 220 14% 12%;
+    --sidebar-ring: 18 85% 60%;
+  }
+
+  .dark {
+    /* Same — app is dark by default */
+    --background: 220 15% 6%;
+    --foreground: 30 25% 92%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground font-mono antialiased;
+    background-image:
+      linear-gradient(hsl(var(--grid-line) / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--grid-line) / 0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.4);
+    color: hsl(var(--foreground));
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: hsl(var(--background)); }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.4); }
+}
+
+@layer components {
+  .terminal-label {
+    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-primary;
+  }
+
+  .panel {
+    @apply bg-card border border-border rounded-sm;
+    background-image: var(--gradient-panel);
+    box-shadow: var(--shadow-panel);
+  }
+
+  .glow-text {
+    text-shadow: var(--glow-text);
+  }
+
+  .scanline::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 2px,
+      hsl(var(--foreground) / 0.015) 2px,
+      hsl(var(--foreground) / 0.015) 4px
+    );
+    pointer-events: none;
+  }
+
+  .heading-display {
+    font-family: 'Space Grotesk', sans-serif;
+    @apply font-bold tracking-tight;
+  }
+}
+
+@layer utilities {
+  .text-glow-primary {
+    text-shadow: 0 0 16px hsl(var(--primary) / 0.6);
+  }
+  .border-signal {
+    border-color: hsl(var(--primary) / 0.5);
+  }
+}
