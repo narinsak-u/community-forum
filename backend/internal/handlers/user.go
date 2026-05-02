@@ -1,9 +1,10 @@
 package handlers
 
 import (
+	"community-forum/backend/internal/domain"
 	"community-forum/backend/internal/middleware"
 	"community-forum/backend/internal/models"
-	"encoding/json"
+	"community-forum/backend/internal/ports"
 	"math"
 	"strconv"
 
@@ -12,11 +13,12 @@ import (
 )
 
 type UserHandler struct {
-	DB *gorm.DB
+	UserService ports.UserService
+	DB          *gorm.DB
 }
 
-func NewUserHandler(db *gorm.DB) *UserHandler {
-	return &UserHandler{DB: db}
+func NewUserHandler(userService ports.UserService, db *gorm.DB) *UserHandler {
+	return &UserHandler{UserService: userService, DB: db}
 }
 
 type UpdateUserRequest struct {
@@ -25,25 +27,13 @@ type UpdateUserRequest struct {
 	Stacks []string `json:"stacks"`
 }
 
-func userResponse(db *gorm.DB, user models.User) fiber.Map {
-	var stacks interface{}
-	if user.Stacks == "" {
-		stacks = nil
-	} else {
-		var s []string
-		if err := json.Unmarshal([]byte(user.Stacks), &s); err != nil {
-			stacks = nil
-		} else {
-			stacks = s
-		}
-	}
-
+func userResponse(user *domain.User) fiber.Map {
 	return fiber.Map{
 		"id":         user.ID,
 		"username":   user.Username,
 		"avatar":     user.Avatar,
 		"bio":        user.Bio,
-		"stacks":     stacks,
+		"stacks":     user.Stacks,
 		"role":       user.Role,
 		"created_at": user.CreatedAt,
 	}
@@ -52,32 +42,25 @@ func userResponse(db *gorm.DB, user models.User) fiber.Map {
 func (h *UserHandler) GetUserHandler(c *fiber.Ctx) error {
 	username := c.Params("username")
 
-	var user models.User
-	if result := h.DB.Where("username = ?", username).First(&user); result.Error != nil {
+	user, err := h.UserService.GetUserProfile(c.Context(), username)
+	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "User not found",
 		})
 	}
 
 	return c.JSON(fiber.Map{
-		"user": userResponse(h.DB, user),
+		"user": userResponse(user),
 	})
 }
 
 func (h *UserHandler) UpdateUserHandler(c *fiber.Ctx) error {
 	username := c.Params("username")
 
-	var user models.User
-	if result := h.DB.Where("username = ?", username).First(&user); result.Error != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "User not found",
-		})
-	}
-
 	userID := middleware.GetUserID(c)
-	if user.ID != userID {
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-			"error": "Forbidden",
+	if userID == 0 {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
 		})
 	}
 
@@ -88,42 +71,51 @@ func (h *UserHandler) UpdateUserHandler(c *fiber.Ctx) error {
 		})
 	}
 
+	updates := &domain.User{}
 	if req.Bio != nil {
 		if len(*req.Bio) > 500 {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "Bio must be at most 500 characters",
 			})
 		}
-		user.Bio = *req.Bio
+		updates.Bio = *req.Bio
 	}
-
+	if req.Avatar != nil {
+		updates.Avatar = *req.Avatar
+	}
 	if req.Stacks != nil {
 		if len(req.Stacks) > 10 {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "Stacks must have at most 10 items",
 			})
 		}
-		marshaled, err := json.Marshal(req.Stacks)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to process stacks",
-			})
-		}
-		user.Stacks = string(marshaled)
+		updates.Stacks = req.Stacks
 	}
 
-	if req.Avatar != nil {
-		user.Avatar = *req.Avatar
+	// We need to check if the user we're updating is the same as the authenticated user.
+	// We can fetch the user by username first.
+	user, err := h.UserService.GetUserProfile(c.Context(), username)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "User not found",
+		})
 	}
 
-	if result := h.DB.Save(&user); result.Error != nil {
+	if user.ID != userID {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Forbidden",
+		})
+	}
+
+	updatedUser, err := h.UserService.UpdateProfile(c.Context(), userID, updates)
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to update user",
 		})
 	}
 
 	return c.JSON(fiber.Map{
-		"user": userResponse(h.DB, user),
+		"user": userResponse(updatedUser),
 	})
 }
 

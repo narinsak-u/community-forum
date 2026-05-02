@@ -2,21 +2,17 @@ package handlers
 
 import (
 	"community-forum/backend/internal/middleware"
-	"community-forum/backend/internal/models"
-	"regexp"
-	"strings"
+	"community-forum/backend/internal/ports"
 
 	"github.com/gofiber/fiber/v2"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type AuthHandler struct {
-	DB *gorm.DB
+	AuthService ports.AuthService
 }
 
-func NewAuthHandler(db *gorm.DB) *AuthHandler {
-	return &AuthHandler{DB: db}
+func NewAuthHandler(authService ports.AuthService) *AuthHandler {
+	return &AuthHandler{AuthService: authService}
 }
 
 type SignupRequest struct {
@@ -30,9 +26,6 @@ type SigninRequest struct {
 	Password string `json:"password"`
 }
 
-var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
-var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
-
 func (h *AuthHandler) SignupHandler(c *fiber.Ctx) error {
 	var req SignupRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -41,56 +34,9 @@ func (h *AuthHandler) SignupHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	req.Username = strings.TrimSpace(req.Username)
-	req.Email = strings.TrimSpace(req.Email)
-
-	if len(req.Username) < 3 || len(req.Username) > 30 || !usernameRegex.MatchString(req.Username) {
+	if err := h.AuthService.Signup(c.Context(), req.Username, req.Email, req.Password); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Username must be 3-30 characters and contain only letters, numbers, and underscores",
-		})
-	}
-
-	if !emailRegex.MatchString(req.Email) {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid email format",
-		})
-	}
-
-	if len(req.Password) < 8 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Password must be at least 8 characters",
-		})
-	}
-
-	var existingUser models.User
-	if h.DB.Where("username = ?", req.Username).First(&existingUser).RowsAffected > 0 {
-		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-			"error": "Username already taken",
-		})
-	}
-
-	if h.DB.Where("email = ?", req.Email).First(&existingUser).RowsAffected > 0 {
-		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-			"error": "Email already registered",
-		})
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to hash password",
-		})
-	}
-
-	user := models.User{
-		Username: req.Username,
-		Email:    req.Email,
-		Password: string(hashedPassword),
-	}
-
-	if result := h.DB.Create(&user); result.Error != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to create user",
+			"error": err.Error(),
 		})
 	}
 
@@ -107,14 +53,8 @@ func (h *AuthHandler) SigninHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	var user models.User
-	if result := h.DB.Where("username = ? OR email = ?", req.Login, req.Login).First(&user); result.Error != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Invalid credentials",
-		})
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+	user, err := h.AuthService.Signin(c.Context(), req.Login, req.Password)
+	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Invalid credentials",
 		})
@@ -128,7 +68,7 @@ func (h *AuthHandler) SigninHandler(c *fiber.Ctx) error {
 	}
 
 	sess.Set("user_id", user.ID)
-	sess.Set("user_role", user.Role)
+	sess.Set("user_role", string(user.Role))
 
 	if err := sess.Save(); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -175,8 +115,8 @@ func (h *AuthHandler) MeHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	var user models.User
-	if result := h.DB.First(&user, userID); result.Error != nil {
+	user, err := h.AuthService.GetByID(c.Context(), userID)
+	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "User not found",
 		})
