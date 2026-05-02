@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"community-forum/backend/internal/domain"
 	"community-forum/backend/internal/models"
@@ -26,6 +27,9 @@ func (r *GORMUserRepository) Create(ctx context.Context, u *domain.User) error {
 func (r *GORMUserRepository) GetByID(ctx context.Context, id uint) (*domain.User, error) {
 	var m models.User
 	if err := r.db.WithContext(ctx).First(&m, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrNotFound
+		}
 		return nil, err
 	}
 	return fromModel(&m), nil
@@ -34,6 +38,9 @@ func (r *GORMUserRepository) GetByID(ctx context.Context, id uint) (*domain.User
 func (r *GORMUserRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
 	var m models.User
 	if err := r.db.WithContext(ctx).Where("username = ?", username).First(&m).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrNotFound
+		}
 		return nil, err
 	}
 	return fromModel(&m), nil
@@ -42,6 +49,9 @@ func (r *GORMUserRepository) GetByUsername(ctx context.Context, username string)
 func (r *GORMUserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var m models.User
 	if err := r.db.WithContext(ctx).Where("email = ?", email).First(&m).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrNotFound
+		}
 		return nil, err
 	}
 	return fromModel(&m), nil
@@ -49,7 +59,7 @@ func (r *GORMUserRepository) GetByEmail(ctx context.Context, email string) (*dom
 
 func (r *GORMUserRepository) Update(ctx context.Context, u *domain.User) error {
 	m := toModel(u)
-	return r.db.WithContext(ctx).Save(m).Error
+	return r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", m.ID).Updates(m).Error
 }
 
 func toModel(u *domain.User) *models.User {
