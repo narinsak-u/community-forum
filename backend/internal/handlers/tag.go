@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// TagHandler handles operations related to thread categories (tags).
 type TagHandler struct {
 	DB *gorm.DB
 }
@@ -18,13 +19,16 @@ func NewTagHandler(db *gorm.DB) *TagHandler {
 	return &TagHandler{DB: db}
 }
 
+// CreateTagRequest defines the data needed to create a new tag.
 type CreateTagRequest struct {
 	Name  string `json:"name"`
-	Color string `json:"color"`
+	Color string `json:"color"` // Optional hex color code
 }
 
+// hexColorRegex verifies that a color string is a valid hex code (e.g., #FFFFFF).
 var hexColorRegex = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
+// ListTagsHandler retrieves all available tags, sorted alphabetically.
 func (h *TagHandler) ListTagsHandler(c *fiber.Ctx) error {
 	var tags []models.Tag
 	if result := h.DB.Order("name ASC").Find(&tags); result.Error != nil {
@@ -33,6 +37,7 @@ func (h *TagHandler) ListTagsHandler(c *fiber.Ctx) error {
 		})
 	}
 
+	// Format the tags for the JSON response.
 	items := make([]fiber.Map, 0, len(tags))
 	for _, tag := range tags {
 		items = append(items, fiber.Map{
@@ -47,7 +52,9 @@ func (h *TagHandler) ListTagsHandler(c *fiber.Ctx) error {
 	})
 }
 
+// CreateTagHandler allows an admin to create a new tag.
 func (h *TagHandler) CreateTagHandler(c *fiber.Ctx) error {
+	// Security: Check if the user has the 'admin' role.
 	userRole := middleware.GetUserRole(c)
 	if userRole != "admin" {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
@@ -62,25 +69,30 @@ func (h *TagHandler) CreateTagHandler(c *fiber.Ctx) error {
 		})
 	}
 
+	// Clean up input: remove accidental spaces.
 	req.Name = strings.TrimSpace(req.Name)
 	req.Color = strings.TrimSpace(req.Color)
 
+	// Validation: Name length.
 	if len(req.Name) < 3 || len(req.Name) > 50 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Tag name must be between 3 and 50 characters",
 		})
 	}
 
+	// Validation: Color format (if provided).
 	if req.Color != "" && !hexColorRegex.MatchString(req.Color) {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid color format, must be a valid hex color (e.g. #6366f1)",
 		})
 	}
 
+	// Default color if none provided.
 	if req.Color == "" {
 		req.Color = "#6366f1"
 	}
 
+	// Check if the tag already exists (case-insensitive check).
 	var existing models.Tag
 	if h.DB.Where("LOWER(name) = ?", strings.ToLower(req.Name)).First(&existing).RowsAffected > 0 {
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
@@ -88,6 +100,7 @@ func (h *TagHandler) CreateTagHandler(c *fiber.Ctx) error {
 		})
 	}
 
+	// Create the tag.
 	tag := models.Tag{
 		Name:  req.Name,
 		Color: req.Color,
