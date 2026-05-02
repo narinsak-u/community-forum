@@ -13,6 +13,8 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"community-forum/backend/internal/handlers"
+	"community-forum/backend/internal/middleware"
 	"community-forum/backend/internal/models"
 )
 
@@ -38,6 +40,7 @@ func main() {
 
 	if err := db.AutoMigrate(
 		&models.User{},
+		&models.Session{},
 		&models.Thread{},
 		&models.Comment{},
 		&models.Tag{},
@@ -56,6 +59,8 @@ func main() {
 		},
 	)
 
+	middleware.InitSessionStore()
+
 	app.Use(recover.New())
 	app.Use(logger.New())
 	app.Use(cors.New())
@@ -70,26 +75,40 @@ func main() {
 
 	api := app.Group("/api/v1")
 
-	api.Get("/threads", func(c *fiber.Ctx) error {
-		var threads []models.Thread
-		if result := db.Preload("Author").Preload("Tags").Find(&threads); result.Error != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": result.Error.Error(),
-			})
-		}
-		return c.JSON(threads)
-	})
+	authHandler := handlers.NewAuthHandler(db)
+	threadHandler := handlers.NewThreadHandler(db)
 
-	api.Get("/threads/:slug", func(c *fiber.Ctx) error {
-		slug := c.Params("slug")
-		var thread models.Thread
-		if result := db.Preload("Author").Preload("Tags").Preload("Comments.Author").First(&thread, "slug = ?", slug); result.Error != nil {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"error": "Thread not found",
-			})
-		}
-		return c.JSON(thread)
-	})
+	api.Post("/auth/signup", authHandler.SignupHandler)
+	api.Post("/auth/signin", authHandler.SigninHandler)
+	api.Post("/auth/signout", middleware.RequireAuth, authHandler.SignoutHandler)
+	api.Get("/auth/me", middleware.RequireAuth, authHandler.MeHandler)
+
+	api.Post("/threads", middleware.RequireAuth, threadHandler.CreateThreadHandler)
+	api.Get("/threads", threadHandler.ListThreadsHandler)
+	api.Get("/threads/featured", threadHandler.FeaturedThreadHandler)
+	api.Get("/threads/trending", threadHandler.TrendingThreadsHandler)
+	api.Get("/threads/:slug", middleware.RequireAuth, threadHandler.GetThreadHandler)
+	api.Patch("/threads/:slug", middleware.RequireAuth, threadHandler.UpdateThreadHandler)
+	api.Delete("/threads/:slug", middleware.RequireAuth, threadHandler.DeleteThreadHandler)
+
+	commentHandler := handlers.NewCommentHandler(db)
+	voteHandler := handlers.NewVoteHandler(db)
+
+	api.Post("/threads/:slug/comments", middleware.RequireAuth, commentHandler.CreateCommentHandler)
+	api.Delete("/comments/:id", middleware.RequireAuth, commentHandler.DeleteCommentHandler)
+
+	api.Post("/threads/:slug/vote", middleware.RequireAuth, voteHandler.VoteThreadHandler)
+	api.Post("/comments/:id/vote", middleware.RequireAuth, voteHandler.VoteCommentHandler)
+
+	userHandler := handlers.NewUserHandler(db)
+	tagHandler := handlers.NewTagHandler(db)
+
+	api.Get("/users/:username", userHandler.GetUserHandler)
+	api.Patch("/users/:username", middleware.RequireAuth, userHandler.UpdateUserHandler)
+	api.Get("/users/:username/threads", userHandler.GetUserThreadsHandler)
+
+	api.Get("/tags", tagHandler.ListTagsHandler)
+	api.Post("/tags", middleware.RequireAuth, tagHandler.CreateTagHandler)
 
 	port := getEnv("PORT", "8080")
 	log.Printf("Server starting on http://localhost:%s", port)
