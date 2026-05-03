@@ -16,11 +16,11 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	db_adapter "community-forum/backend/internal/adapters/db"
 	"community-forum/backend/internal/handlers"
 	"community-forum/backend/internal/middleware"
 	"community-forum/backend/internal/models"
 	"community-forum/backend/internal/usecase"
-	db_adapter "community-forum/backend/internal/adapters/db"
 )
 
 func main() {
@@ -39,7 +39,7 @@ func main() {
 		getEnv("DB_USER", "postgres"),
 		getEnv("DB_PASSWORD", "postgres"),
 		getEnv("DB_NAME", "community_forum"),
-		getEnv("DB_PORT", "5432"),
+		getEnv("DB_PORT", "5433"),
 		getEnv("DB_SSLMODE", "disable"),
 	)
 
@@ -86,7 +86,12 @@ func main() {
 	// cors: Configures Cross-Origin Resource Sharing.
 	app.Use(recover.New())
 	app.Use(logger.New())
-	app.Use(cors.New())
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://localhost:8080,http://127.0.0.1:8080",
+		AllowCredentials: true,
+		AllowMethods:     "GET,POST,PUT,DELETE,PATCH,OPTIONS",
+		AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
+	}))
 
 	// Step 8: Define basic health check routes.
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -103,7 +108,7 @@ func main() {
 	// Step 10: Wire up the Hexagonal Architecture layers.
 	// 1. Adapters (Database): Repository implementation.
 	userRepo := db_adapter.NewGORMUserRepository(db)
-	
+
 	// 2. Use Cases (Services): Business logic implementation, receiving the repository via Dependency Injection.
 	authService := usecase.NewAuthService(userRepo)
 	userService := usecase.NewUserService(userRepo)
