@@ -12,20 +12,18 @@ import (
 	"community-forum/backend/internal/domain"
 	"community-forum/backend/internal/handlers"
 	"community-forum/backend/internal/middleware"
+	"community-forum/backend/internal/ports"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
-func setupUserApp(userService *mockUserService, db *gorm.DB) *fiber.App {
+func setupUserApp(userService *mockUserService, threadService ports.ThreadService, sessionManager *middleware.SessionManager) *fiber.App {
 	app := fiber.New()
-	userHandler := handlers.NewUserHandler(userService, db)
+	userHandler := handlers.NewUserHandler(userService, threadService, sessionManager)
 	userHandler.UserService = userService
-	userHandler.DB = db
+	userHandler.ThreadService = threadService
 
 	app.Get("/api/users/:username", userHandler.GetUserHandler)
 	app.Put("/api/users/:username", userHandler.UpdateUserHandler)
@@ -47,7 +45,8 @@ func TestGetUserHandler_Success(t *testing.T) {
 			}, nil
 		},
 	}
-	app := setupUserApp(svc, nil)
+	sessionManager := setupTestSessionManager()
+	app := setupUserApp(svc, nil, sessionManager)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/users/johndoe", nil)
 	resp, err := app.Test(req)
@@ -66,7 +65,8 @@ func TestGetUserHandler_NotFound(t *testing.T) {
 			return nil, fmt.Errorf("user not found")
 		},
 	}
-	app := setupUserApp(svc, nil)
+	sessionManager := setupTestSessionManager()
+	app := setupUserApp(svc, nil, sessionManager)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/users/nonexistent", nil)
 	resp, err := app.Test(req)
@@ -75,8 +75,8 @@ func TestGetUserHandler_NotFound(t *testing.T) {
 }
 
 func TestUpdateUserHandler_Unauthorized(t *testing.T) {
-	middleware.InitSessionStore()
-	app := setupUserApp(&mockUserService{}, nil)
+	sessionManager := setupTestSessionManager()
+	app := setupUserApp(&mockUserService{}, nil, sessionManager)
 
 	body := `{"bio":"new bio"}`
 	req := httptest.NewRequest(http.MethodPut, "/api/users/johndoe", strings.NewReader(body))
@@ -88,13 +88,13 @@ func TestUpdateUserHandler_Unauthorized(t *testing.T) {
 }
 
 func TestUpdateUserHandler_Forbidden(t *testing.T) {
-	middleware.InitSessionStore()
+	sessionManager := setupTestSessionManager()
 	otherSvc := &mockUserService{
 		getUserProfileFn: func(ctx context.Context, username string) (*domain.User, error) {
 			return &domain.User{ID: 2, Username: "other"}, nil
 		},
 	}
-	app := setupUserApp(otherSvc, nil)
+	app := setupUserApp(otherSvc, nil, sessionManager)
 
 	signinBody := `{"login":"johndoe","password":"pass"}`
 	signinReq := httptest.NewRequest(http.MethodPost, "/api/signin", strings.NewReader(signinBody))
@@ -106,7 +106,7 @@ func TestUpdateUserHandler_Forbidden(t *testing.T) {
 			return &domain.User{ID: 1, Username: "johndoe", Email: "john@test.com", Role: domain.RoleUser}, nil
 		},
 	}
-	authApp := setupAuthApp(svc)
+	authApp := setupAuthApp(svc, sessionManager)
 	signinReq2 := httptest.NewRequest(http.MethodPost, "/api/signin", strings.NewReader(signinBody))
 	signinReq2.Header.Set("Content-Type", "application/json")
 	signinResp, _ = authApp.Test(signinReq2)
@@ -130,23 +130,21 @@ func TestUpdateUserHandler_Forbidden(t *testing.T) {
 }
 
 func TestGetUserThreadsHandler_Success(t *testing.T) {
-	middleware.InitSessionStore()
-	sqlDB, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer sqlDB.Close()
+	sessionManager := setupTestSessionManager()
 
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: sqlDB}), &gorm.Config{})
-	require.NoError(t, err)
+	userSvc := &mockUserService{
+		getUserProfileFn: func(ctx context.Context, username string) (*domain.User, error) {
+			return &domain.User{ID: 1, Username: "johndoe"}, nil
+		},
+	}
 
-	mock.ExpectQuery(`SELECT \* FROM "users" WHERE username = \$1 AND "users"\."deleted_at" IS NULL ORDER BY "users"\."id" LIMIT 1`).
-		WithArgs("johndoe").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username"}).AddRow(1, "johndoe"))
+	threadSvc := &mockThreadService{
+		listByUserFn: func(ctx context.Context, username string, page, pageSize int) ([]domain.Thread, int64, error) {
+			return []domain.Thread{}, 0, nil
+		},
+	}
 
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "threads" WHERE author_id = \$1 AND "threads"\."deleted_at" IS NULL`).
-		WithArgs(int64(1)).
-		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
-
-	app := setupUserApp(&mockUserService{}, gormDB)
+	app := setupUserApp(userSvc, threadSvc, sessionManager)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/users/johndoe/threads?page=1&pageSize=5", nil)
 	resp, err := app.Test(req)
@@ -155,19 +153,15 @@ func TestGetUserThreadsHandler_Success(t *testing.T) {
 }
 
 func TestGetUserThreadsHandler_UserNotFound(t *testing.T) {
-	middleware.InitSessionStore()
-	sqlDB, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer sqlDB.Close()
+	sessionManager := setupTestSessionManager()
 
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: sqlDB}), &gorm.Config{})
-	require.NoError(t, err)
+	userSvc := &mockUserService{
+		getUserProfileFn: func(ctx context.Context, username string) (*domain.User, error) {
+			return nil, fmt.Errorf("user not found")
+		},
+	}
 
-	mock.ExpectQuery(`SELECT \* FROM "users" WHERE username = \$1 AND "users"\."deleted_at" IS NULL ORDER BY "users"\."id" LIMIT 1`).
-		WithArgs("nonexistent").
-		WillReturnError(gorm.ErrRecordNotFound)
-
-	app := setupUserApp(&mockUserService{}, gormDB)
+	app := setupUserApp(userSvc, &mockThreadService{}, sessionManager)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/users/nonexistent/threads", nil)
 	resp, err := app.Test(req)
@@ -176,23 +170,23 @@ func TestGetUserThreadsHandler_UserNotFound(t *testing.T) {
 }
 
 func TestGetUserThreadsHandler_PaginationDefaults(t *testing.T) {
-	middleware.InitSessionStore()
-	sqlDB, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer sqlDB.Close()
+	sessionManager := setupTestSessionManager()
 
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: sqlDB}), &gorm.Config{})
-	require.NoError(t, err)
+	userSvc := &mockUserService{
+		getUserProfileFn: func(ctx context.Context, username string) (*domain.User, error) {
+			return &domain.User{ID: 1, Username: "johndoe"}, nil
+		},
+	}
 
-	mock.ExpectQuery(`SELECT \* FROM "users" WHERE username = \$1 AND "users"\."deleted_at" IS NULL ORDER BY "users"\."id" LIMIT 1`).
-		WithArgs("johndoe").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username"}).AddRow(1, "johndoe"))
+	threadSvc := &mockThreadService{
+		listByUserFn: func(ctx context.Context, username string, page, pageSize int) ([]domain.Thread, int64, error) {
+			assert.Equal(t, 1, page)
+			assert.Equal(t, 5, pageSize)
+			return []domain.Thread{}, 0, nil
+		},
+	}
 
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "threads" WHERE author_id = \$1 AND "threads"\."deleted_at" IS NULL`).
-		WithArgs(int64(1)).
-		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
-
-	app := setupUserApp(&mockUserService{}, gormDB)
+	app := setupUserApp(userSvc, threadSvc, sessionManager)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/users/johndoe/threads", nil)
 	resp, err := app.Test(req)

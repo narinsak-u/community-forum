@@ -9,9 +9,11 @@ import (
 	"strings"
 	"testing"
 
+	db_adapter "community-forum/backend/internal/adapters/db"
 	"community-forum/backend/internal/domain"
 	"community-forum/backend/internal/handlers"
 	"community-forum/backend/internal/middleware"
+	"community-forum/backend/internal/usecase"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gofiber/fiber/v2"
@@ -20,9 +22,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupTagApp(db *gorm.DB) *fiber.App {
+func setupTagApp(db *gorm.DB, sessionManager *middleware.SessionManager) *fiber.App {
 	app := fiber.New()
-	tagHandler := handlers.NewTagHandler(db)
+	tagRepo := db_adapter.NewGORMTagRepository(db)
+	tagService := usecase.NewTagService(tagRepo)
+	tagHandler := handlers.NewTagHandler(tagService, sessionManager)
 
 	app.Get("/api/tags", tagHandler.ListTagsHandler)
 	app.Post("/api/tags", tagHandler.CreateTagHandler)
@@ -31,8 +35,9 @@ func setupTagApp(db *gorm.DB) *fiber.App {
 }
 
 func TestListTagsHandler_Success(t *testing.T) {
+	sessionManager := setupTestSessionManager()
 	gormDB, mock := newMockDB(t)
-	app := setupTagApp(gormDB)
+	app := setupTagApp(gormDB, sessionManager)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "tags" WHERE "tags"."deleted_at" IS NULL ORDER BY name ASC`)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "color"}).AddRow(1, "Go", "#00ADD8").AddRow(2, "React", "#61DAFB"))
@@ -49,8 +54,8 @@ func TestListTagsHandler_Success(t *testing.T) {
 }
 
 func TestCreateTagHandler_Unauthorized(t *testing.T) {
-	middleware.InitSessionStore()
-	app := setupTagApp(nil)
+	sessionManager := setupTestSessionManager()
+	app := setupTagApp(nil, sessionManager)
 
 	body := `{"name":"NewTag","color":"#ff0000"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/tags", strings.NewReader(body))
@@ -62,16 +67,16 @@ func TestCreateTagHandler_Unauthorized(t *testing.T) {
 }
 
 func TestCreateTagHandler_AdminSuccess(t *testing.T) {
-	middleware.InitSessionStore()
+	sessionManager := setupTestSessionManager()
 	gormDB, mock := newMockDB(t)
-	app := setupTagApp(gormDB)
+	app := setupTagApp(gormDB, sessionManager)
 
 	signinSvc := &mockAuthService{
 		signinFn: func(ctx context.Context, login, password string) (*domain.User, error) {
 			return &domain.User{ID: 1, Username: "admin", Email: "admin@test.com", Role: domain.RoleAdmin}, nil
 		},
 	}
-	authApp := setupAuthApp(signinSvc)
+	authApp := setupAuthApp(signinSvc, sessionManager)
 	signinReq := httptest.NewRequest(http.MethodPost, "/api/signin", strings.NewReader(`{"login":"admin","password":"pass"}`))
 	signinReq.Header.Set("Content-Type", "application/json")
 	signinResp, _ := authApp.Test(signinReq)
@@ -99,16 +104,16 @@ func TestCreateTagHandler_AdminSuccess(t *testing.T) {
 }
 
 func TestCreateTagHandler_InvalidBody(t *testing.T) {
-	middleware.InitSessionStore()
+	sessionManager := setupTestSessionManager()
 	gormDB, _ := newMockDB(t)
-	app := setupTagApp(gormDB)
+	app := setupTagApp(gormDB, sessionManager)
 
 	signinSvc := &mockAuthService{
 		signinFn: func(ctx context.Context, login, password string) (*domain.User, error) {
 			return &domain.User{ID: 1, Username: "admin", Email: "admin@test.com", Role: domain.RoleAdmin}, nil
 		},
 	}
-	authApp := setupAuthApp(signinSvc)
+	authApp := setupAuthApp(signinSvc, sessionManager)
 	signinReq := httptest.NewRequest(http.MethodPost, "/api/signin", strings.NewReader(`{"login":"admin","password":"pass"}`))
 	signinReq.Header.Set("Content-Type", "application/json")
 	signinResp, _ := authApp.Test(signinReq)
@@ -127,16 +132,16 @@ func TestCreateTagHandler_InvalidBody(t *testing.T) {
 }
 
 func TestCreateTagHandler_ColorValidation(t *testing.T) {
-	middleware.InitSessionStore()
+	sessionManager := setupTestSessionManager()
 	gormDB, _ := newMockDB(t)
-	app := setupTagApp(gormDB)
+	app := setupTagApp(gormDB, sessionManager)
 
 	signinSvc := &mockAuthService{
 		signinFn: func(ctx context.Context, login, password string) (*domain.User, error) {
 			return &domain.User{ID: 1, Username: "admin", Email: "admin@test.com", Role: domain.RoleAdmin}, nil
 		},
 	}
-	authApp := setupAuthApp(signinSvc)
+	authApp := setupAuthApp(signinSvc, sessionManager)
 	signinReq := httptest.NewRequest(http.MethodPost, "/api/signin", strings.NewReader(`{"login":"admin","password":"pass"}`))
 	signinReq.Header.Set("Content-Type", "application/json")
 	signinResp, _ := authApp.Test(signinReq)

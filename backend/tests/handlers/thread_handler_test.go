@@ -9,8 +9,10 @@ import (
 	"strings"
 	"testing"
 
+	db_adapter "community-forum/backend/internal/adapters/db"
 	"community-forum/backend/internal/handlers"
 	"community-forum/backend/internal/middleware"
+	"community-forum/backend/internal/usecase"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gofiber/fiber/v2"
@@ -20,9 +22,12 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupThreadApp(db *gorm.DB) *fiber.App {
+func setupThreadApp(db *gorm.DB) (*fiber.App, *middleware.SessionManager) {
 	app := fiber.New()
-	threadHandler := handlers.NewThreadHandler(db)
+	sessionManager := setupTestSessionManager()
+	threadRepo := db_adapter.NewGORMThreadRepository(db)
+	threadService := usecase.NewThreadService(threadRepo)
+	threadHandler := handlers.NewThreadHandler(threadService, sessionManager)
 
 	app.Post("/api/threads", threadHandler.CreateThreadHandler)
 	app.Get("/api/threads", threadHandler.ListThreadsHandler)
@@ -32,7 +37,7 @@ func setupThreadApp(db *gorm.DB) *fiber.App {
 	app.Put("/api/threads/:slug", threadHandler.UpdateThreadHandler)
 	app.Delete("/api/threads/:slug", threadHandler.DeleteThreadHandler)
 
-	return app
+	return app, sessionManager
 }
 
 func newMockDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
@@ -45,9 +50,8 @@ func newMockDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
 }
 
 func TestCreateThreadHandler_InvalidTitle(t *testing.T) {
-	middleware.InitSessionStore()
 	gormDB, _ := newMockDB(t)
-	app := setupThreadApp(gormDB)
+	app, _ := setupThreadApp(gormDB)
 
 	tests := []struct {
 		name string
@@ -70,9 +74,8 @@ func TestCreateThreadHandler_InvalidTitle(t *testing.T) {
 }
 
 func TestCreateThreadHandler_InvalidBody(t *testing.T) {
-	middleware.InitSessionStore()
 	gormDB, _ := newMockDB(t)
-	app := setupThreadApp(gormDB)
+	app, _ := setupThreadApp(gormDB)
 	req := httptest.NewRequest(http.MethodPost, "/api/threads", strings.NewReader(`not json`))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -82,9 +85,8 @@ func TestCreateThreadHandler_InvalidBody(t *testing.T) {
 }
 
 func TestListThreadsHandler_Pagination(t *testing.T) {
-	middleware.InitSessionStore()
 	gormDB, mock := newMockDB(t)
-	app := setupThreadApp(gormDB)
+	app, _ := setupThreadApp(gormDB)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "threads"`)).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
@@ -108,9 +110,8 @@ func TestListThreadsHandler_Pagination(t *testing.T) {
 }
 
 func TestGetThreadHandler_Success(t *testing.T) {
-	middleware.InitSessionStore()
 	gormDB, mock := newMockDB(t)
-	app := setupThreadApp(gormDB)
+	app, _ := setupThreadApp(gormDB)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "threads"`)).
 		WithArgs("hello-world").
@@ -144,9 +145,8 @@ func TestGetThreadHandler_Success(t *testing.T) {
 }
 
 func TestGetThreadHandler_NotFound(t *testing.T) {
-	middleware.InitSessionStore()
 	gormDB, mock := newMockDB(t)
-	app := setupThreadApp(gormDB)
+	app, _ := setupThreadApp(gormDB)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "threads"`)).
 		WithArgs("nonexistent").
@@ -159,9 +159,8 @@ func TestGetThreadHandler_NotFound(t *testing.T) {
 }
 
 func TestFeaturedThreadHandler_NotFound(t *testing.T) {
-	middleware.InitSessionStore()
 	gormDB, mock := newMockDB(t)
-	app := setupThreadApp(gormDB)
+	app, _ := setupThreadApp(gormDB)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT`)).
 		WillReturnError(gorm.ErrRecordNotFound)
@@ -173,9 +172,8 @@ func TestFeaturedThreadHandler_NotFound(t *testing.T) {
 }
 
 func TestTrendingThreadsHandler_DBError(t *testing.T) {
-	middleware.InitSessionStore()
 	gormDB, mock := newMockDB(t)
-	app := setupThreadApp(gormDB)
+	app, _ := setupThreadApp(gormDB)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT`)).
 		WillReturnError(fmt.Errorf("db error"))
@@ -187,9 +185,8 @@ func TestTrendingThreadsHandler_DBError(t *testing.T) {
 }
 
 func TestDeleteThreadHandler_NotFound(t *testing.T) {
-	middleware.InitSessionStore()
 	gormDB, mock := newMockDB(t)
-	app := setupThreadApp(gormDB)
+	app, _ := setupThreadApp(gormDB)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "threads"`)).
 		WithArgs("nonexistent").
@@ -202,9 +199,8 @@ func TestDeleteThreadHandler_NotFound(t *testing.T) {
 }
 
 func TestListThreadsHandler_SortOldest(t *testing.T) {
-	middleware.InitSessionStore()
 	gormDB, mock := newMockDB(t)
-	app := setupThreadApp(gormDB)
+	app, _ := setupThreadApp(gormDB)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "threads"`)).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
@@ -219,9 +215,8 @@ func TestListThreadsHandler_SortOldest(t *testing.T) {
 }
 
 func TestCreateThreadHandler_InvalidStatus(t *testing.T) {
-	middleware.InitSessionStore()
 	gormDB, _ := newMockDB(t)
-	app := setupThreadApp(gormDB)
+	app, _ := setupThreadApp(gormDB)
 
 	body := `{"title":"Valid Title Here","content":"This is valid content for the thread body","status":"invalid_status"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/threads", strings.NewReader(body))
@@ -233,9 +228,8 @@ func TestCreateThreadHandler_InvalidStatus(t *testing.T) {
 }
 
 func TestCreateThreadHandler_ShortContent(t *testing.T) {
-	middleware.InitSessionStore()
 	gormDB, _ := newMockDB(t)
-	app := setupThreadApp(gormDB)
+	app, _ := setupThreadApp(gormDB)
 
 	body := `{"title":"Valid Title","content":"short","status":"published"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/threads", strings.NewReader(body))

@@ -19,9 +19,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupAuthApp(authService ports.AuthService) *fiber.App {
+func setupAuthApp(authService ports.AuthService, sessionManager *middleware.SessionManager) *fiber.App {
 	app := fiber.New()
-	authHandler := handlers.NewAuthHandler(authService)
+	authHandler := handlers.NewAuthHandler(authService, sessionManager)
 
 	app.Post("/api/signup", authHandler.SignupHandler)
 	app.Post("/api/signin", authHandler.SigninHandler)
@@ -40,7 +40,8 @@ func TestSignupHandler_Success(t *testing.T) {
 			return nil
 		},
 	}
-	app := setupAuthApp(svc)
+	sessionManager := setupTestSessionManager()
+	app := setupAuthApp(svc, sessionManager)
 
 	body := `{"username":"newuser","email":"new@example.com","password":"password123"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/signup", strings.NewReader(body))
@@ -56,7 +57,8 @@ func TestSignupHandler_Success(t *testing.T) {
 }
 
 func TestSignupHandler_InvalidBody(t *testing.T) {
-	app := setupAuthApp(&mockAuthService{})
+	sessionManager := setupTestSessionManager()
+	app := setupAuthApp(&mockAuthService{}, sessionManager)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/signup", strings.NewReader(`not json`))
 	req.Header.Set("Content-Type", "application/json")
@@ -72,7 +74,8 @@ func TestSignupHandler_ServiceError(t *testing.T) {
 			return fmt.Errorf("username already taken")
 		},
 	}
-	app := setupAuthApp(svc)
+	sessionManager := setupTestSessionManager()
+	app := setupAuthApp(svc, sessionManager)
 
 	body := `{"username":"taken","email":"taken@example.com","password":"password123"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/signup", strings.NewReader(body))
@@ -88,7 +91,7 @@ func TestSignupHandler_ServiceError(t *testing.T) {
 }
 
 func TestSigninHandler_Success(t *testing.T) {
-	middleware.InitSessionStore()
+	sessionManager := setupTestSessionManager()
 
 	svc := &mockAuthService{
 		signinFn: func(ctx context.Context, login, password string) (*domain.User, error) {
@@ -102,7 +105,7 @@ func TestSigninHandler_Success(t *testing.T) {
 			}, nil
 		},
 	}
-	app := setupAuthApp(svc)
+	app := setupAuthApp(svc, sessionManager)
 
 	body := `{"login":"johndoe","password":"password123"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/signin", strings.NewReader(body))
@@ -119,14 +122,14 @@ func TestSigninHandler_Success(t *testing.T) {
 }
 
 func TestSigninHandler_InvalidCredentials(t *testing.T) {
-	middleware.InitSessionStore()
+	sessionManager := setupTestSessionManager()
 
 	svc := &mockAuthService{
 		signinFn: func(ctx context.Context, login, password string) (*domain.User, error) {
 			return nil, fmt.Errorf("invalid credentials")
 		},
 	}
-	app := setupAuthApp(svc)
+	app := setupAuthApp(svc, sessionManager)
 
 	body := `{"login":"wrong","password":"wrong"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/signin", strings.NewReader(body))
@@ -138,8 +141,8 @@ func TestSigninHandler_InvalidCredentials(t *testing.T) {
 }
 
 func TestSigninHandler_InvalidBody(t *testing.T) {
-	middleware.InitSessionStore()
-	app := setupAuthApp(&mockAuthService{})
+	sessionManager := setupTestSessionManager()
+	app := setupAuthApp(&mockAuthService{}, sessionManager)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/signin", strings.NewReader(`bad json`))
 	req.Header.Set("Content-Type", "application/json")
@@ -150,8 +153,8 @@ func TestSigninHandler_InvalidBody(t *testing.T) {
 }
 
 func TestSignoutHandler_Success(t *testing.T) {
-	middleware.InitSessionStore()
-	app := setupAuthApp(&mockAuthService{})
+	sessionManager := setupTestSessionManager()
+	app := setupAuthApp(&mockAuthService{}, sessionManager)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/signout", nil)
 	resp, err := app.Test(req)
@@ -160,8 +163,8 @@ func TestSignoutHandler_Success(t *testing.T) {
 }
 
 func TestMeHandler_Unauthorized(t *testing.T) {
-	middleware.InitSessionStore()
-	app := setupAuthApp(&mockAuthService{})
+	sessionManager := setupTestSessionManager()
+	app := setupAuthApp(&mockAuthService{}, sessionManager)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/me", nil)
 	resp, err := app.Test(req)
@@ -170,7 +173,7 @@ func TestMeHandler_Unauthorized(t *testing.T) {
 }
 
 func TestMeHandler_Authorized(t *testing.T) {
-	middleware.InitSessionStore()
+	sessionManager := setupTestSessionManager()
 
 	svc := &mockAuthService{
 		signinFn: func(ctx context.Context, login, password string) (*domain.User, error) {
@@ -192,7 +195,7 @@ func TestMeHandler_Authorized(t *testing.T) {
 			}, nil
 		},
 	}
-	app := setupAuthApp(svc)
+	app := setupAuthApp(svc, sessionManager)
 
 	signinBody := `{"login":"johndoe","password":"password123"}`
 	signinReq := httptest.NewRequest(http.MethodPost, "/api/signin", strings.NewReader(signinBody))

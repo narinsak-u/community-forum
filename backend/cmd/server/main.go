@@ -78,7 +78,7 @@ func main() {
 	)
 
 	// Step 6: Initialize the session store for authentication.
-	middleware.InitSessionStore()
+	sessionManager := middleware.NewSessionManager()
 
 	// Step 7: Add global middlewares.
 	// recover: Recovers from panics to prevent the server from crashing.
@@ -108,51 +108,59 @@ func main() {
 	// Step 10: Wire up the Hexagonal Architecture layers.
 	// 1. Adapters (Database): Repository implementation.
 	userRepo := db_adapter.NewGORMUserRepository(db)
+	threadRepo := db_adapter.NewGORMThreadRepository(db)
+	commentRepo := db_adapter.NewGORMCommentRepository(db)
+	voteRepo := db_adapter.NewGORMVoteRepository(db)
+	tagRepo := db_adapter.NewGORMTagRepository(db)
 
 	// 2. Use Cases (Services): Business logic implementation, receiving the repository via Dependency Injection.
 	authService := usecase.NewAuthService(userRepo)
 	userService := usecase.NewUserService(userRepo)
+	threadService := usecase.NewThreadService(threadRepo)
+	commentService := usecase.NewCommentService(commentRepo, threadRepo)
+	voteService := usecase.NewVoteService(voteRepo, threadRepo, commentRepo)
+	tagService := usecase.NewTagService(tagRepo)
 
 	// 3. Handlers (Controllers): HTTP layer, receiving services via Dependency Injection.
-	authHandler := handlers.NewAuthHandler(authService)
-	threadHandler := handlers.NewThreadHandler(db)
+	authHandler := handlers.NewAuthHandler(authService, sessionManager)
+	threadHandler := handlers.NewThreadHandler(threadService, sessionManager)
 
 	// Step 11: Register API routes.
 	// Auth routes
 	api.Post("/auth/signup", authHandler.SignupHandler)
 	api.Post("/auth/signin", authHandler.SigninHandler)
-	api.Post("/auth/signout", middleware.RequireAuth, authHandler.SignoutHandler)
-	api.Get("/auth/me", middleware.RequireAuth, authHandler.MeHandler)
+	api.Post("/auth/signout", sessionManager.RequireAuth, authHandler.SignoutHandler)
+	api.Get("/auth/me", sessionManager.RequireAuth, authHandler.MeHandler)
 
 	// Thread routes
-	api.Post("/threads", middleware.RequireAuth, threadHandler.CreateThreadHandler)
+	api.Post("/threads", sessionManager.RequireAuth, threadHandler.CreateThreadHandler)
 	api.Get("/threads", threadHandler.ListThreadsHandler)
 	api.Get("/threads/featured", threadHandler.FeaturedThreadHandler)
 	api.Get("/threads/trending", threadHandler.TrendingThreadsHandler)
-	api.Get("/threads/:slug", middleware.RequireAuth, threadHandler.GetThreadHandler)
-	api.Patch("/threads/:slug", middleware.RequireAuth, threadHandler.UpdateThreadHandler)
-	api.Delete("/threads/:slug", middleware.RequireAuth, threadHandler.DeleteThreadHandler)
+	api.Get("/threads/:slug", sessionManager.RequireAuth, threadHandler.GetThreadHandler)
+	api.Patch("/threads/:slug", sessionManager.RequireAuth, threadHandler.UpdateThreadHandler)
+	api.Delete("/threads/:slug", sessionManager.RequireAuth, threadHandler.DeleteThreadHandler)
 
-	commentHandler := handlers.NewCommentHandler(db)
-	voteHandler := handlers.NewVoteHandler(db)
+	commentHandler := handlers.NewCommentHandler(commentService, sessionManager)
+	voteHandler := handlers.NewVoteHandler(voteService, sessionManager)
 
 	// Comment and Vote routes
-	api.Post("/threads/:slug/comments", middleware.RequireAuth, commentHandler.CreateCommentHandler)
-	api.Delete("/comments/:id", middleware.RequireAuth, commentHandler.DeleteCommentHandler)
+	api.Post("/threads/:slug/comments", sessionManager.RequireAuth, commentHandler.CreateCommentHandler)
+	api.Delete("/comments/:id", sessionManager.RequireAuth, commentHandler.DeleteCommentHandler)
 
-	api.Post("/threads/:slug/vote", middleware.RequireAuth, voteHandler.VoteThreadHandler)
-	api.Post("/comments/:id/vote", middleware.RequireAuth, voteHandler.VoteCommentHandler)
+	api.Post("/threads/:slug/vote", sessionManager.RequireAuth, voteHandler.VoteThreadHandler)
+	api.Post("/comments/:id/vote", sessionManager.RequireAuth, voteHandler.VoteCommentHandler)
 
-	userHandler := handlers.NewUserHandler(userService, db)
-	tagHandler := handlers.NewTagHandler(db)
+	userHandler := handlers.NewUserHandler(userService, threadService, sessionManager)
+	tagHandler := handlers.NewTagHandler(tagService, sessionManager)
 
 	// User and Tag routes
 	api.Get("/users/:username", userHandler.GetUserHandler)
-	api.Patch("/users/:username", middleware.RequireAuth, userHandler.UpdateUserHandler)
+	api.Patch("/users/:username", sessionManager.RequireAuth, userHandler.UpdateUserHandler)
 	api.Get("/users/:username/threads", userHandler.GetUserThreadsHandler)
 
 	api.Get("/tags", tagHandler.ListTagsHandler)
-	api.Post("/tags", middleware.RequireAuth, tagHandler.CreateTagHandler)
+	api.Post("/tags", sessionManager.RequireAuth, tagHandler.CreateTagHandler)
 
 	// Step 12: Start the server on the configured port.
 	port := getEnv("PORT", "8080")

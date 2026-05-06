@@ -6,8 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	db_adapter "community-forum/backend/internal/adapters/db"
 	"community-forum/backend/internal/handlers"
-	"community-forum/backend/internal/middleware"
+	"community-forum/backend/internal/usecase"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,11 @@ import (
 
 func setupCommentApp(db *gorm.DB) *fiber.App {
 	app := fiber.New()
-	commentHandler := handlers.NewCommentHandler(db)
+	sessionManager := setupTestSessionManager()
+	commentRepo := db_adapter.NewGORMCommentRepository(db)
+	threadRepo := db_adapter.NewGORMThreadRepository(db)
+	commentService := usecase.NewCommentService(commentRepo, threadRepo)
+	commentHandler := handlers.NewCommentHandler(commentService, sessionManager)
 
 	app.Post("/api/threads/:slug/comments", commentHandler.CreateCommentHandler)
 	app.Delete("/api/comments/:id", commentHandler.DeleteCommentHandler)
@@ -26,7 +31,6 @@ func setupCommentApp(db *gorm.DB) *fiber.App {
 }
 
 func TestCreateCommentHandler_InvalidBody(t *testing.T) {
-	middleware.InitSessionStore()
 	app := setupCommentApp(nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/threads/test-thread/comments", strings.NewReader(`bad json`))
@@ -38,7 +42,6 @@ func TestCreateCommentHandler_InvalidBody(t *testing.T) {
 }
 
 func TestCreateCommentHandler_ShortContent(t *testing.T) {
-	middleware.InitSessionStore()
 	app := setupCommentApp(nil)
 
 	body := `{"content":"x"}`
@@ -51,7 +54,6 @@ func TestCreateCommentHandler_ShortContent(t *testing.T) {
 }
 
 func TestCreateCommentHandler_LongContent(t *testing.T) {
-	middleware.InitSessionStore()
 	app := setupCommentApp(nil)
 
 	longContent := strings.Repeat("a", 10001)
@@ -65,7 +67,6 @@ func TestCreateCommentHandler_LongContent(t *testing.T) {
 }
 
 func TestDeleteCommentHandler_InvalidID(t *testing.T) {
-	middleware.InitSessionStore()
 	app := setupCommentApp(nil)
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/comments/abc", nil)

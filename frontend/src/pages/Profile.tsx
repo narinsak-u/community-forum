@@ -6,7 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Fingerprint, Terminal, Shield, Archive, FileText, FileText as FileIcon, Globe, Lock, Plus } from "lucide-react";
 import avatarImg from "@/assets/forge-avatar.jpg";
-import { useUserProfile } from "@/hooks/use-user";
+import { useUserProfile, useUserThreads } from "@/hooks/use-user";
+import { Link } from "react-router-dom";
+
+function timeAgo(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  if (hours < 1) return "JUST NOW";
+  if (hours < 24) return hours + "H AGO";
+  const days = Math.floor(hours / 24);
+  return days + "D AGO";
+}
 
 const navItems = [
   { label: "Identity", icon: Fingerprint, active: true },
@@ -25,6 +37,7 @@ const vaultItems = [
 const Profile = () => {
   const { username } = useParams<{ username: string }>();
   const { data: profile, isLoading } = useUserProfile(username || "");
+  const { data: threadsData, isLoading: threadsLoading } = useUserThreads(username || "");
 
   if (isLoading) {
     return (
@@ -139,22 +152,32 @@ const Profile = () => {
 
               <div className="space-y-4">
                 <SectionLabel>CONTRIBUTION STREAM</SectionLabel>
-                {[
-                  { title: "Fragmented Node Recovery Protocol", time: "2H_AGO", tags: ["PROTOCOL", "CRITICAL"] },
-                  { title: "Vault Security Patch v8.4.2", time: "1D_AGO", tags: ["SECURITY", "VAULT"] },
-                ].map((c) => (
-                  <div key={c.title} className="flex justify-between items-start gap-4 border-b border-border/60 pb-3">
-                    <div className="space-y-1.5">
-                      <div className="text-sm font-semibold text-foreground">{c.title}</div>
-                      <div className="flex gap-1.5">
-                        {c.tags.map((tg) => (
-                          <span key={tg} className="px-1.5 py-0.5 bg-secondary border border-border text-[9px] uppercase tracking-[0.18em] text-muted-foreground rounded-sm">{tg}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground shrink-0">{c.time}</span>
+                {threadsLoading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
                   </div>
-                ))}
+                ) : threadsData?.threads?.length ? (
+                  threadsData.threads.map((c) => (
+                    <div key={c.id} className="flex justify-between items-start gap-4 border-b border-border/60 pb-3">
+                      <div className="space-y-1.5">
+                        <Link to={`/thread/${c.slug}`} className="text-sm font-semibold text-foreground hover:text-primary transition-colors">
+                          {c.title}
+                        </Link>
+                        <div className="flex gap-1.5">
+                          {c.tags?.map((tg) => (
+                            <span key={tg.name} className="px-1.5 py-0.5 bg-secondary border border-border text-[9px] uppercase tracking-[0.18em] text-muted-foreground rounded-sm">
+                              {tg.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground shrink-0">{c.created_at ? timeAgo(c.created_at) : ""}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No recent contributions found.</p>
+                )}
               </div>
             </div>
 

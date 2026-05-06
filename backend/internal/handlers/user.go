@@ -3,27 +3,27 @@ package handlers
 import (
 	"community-forum/backend/internal/domain"
 	"community-forum/backend/internal/middleware"
-	"community-forum/backend/internal/models"
 	"community-forum/backend/internal/ports"
 	"math"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 )
 
 // UserHandler handles user-specific operations like profile viewing and updates.
 type UserHandler struct {
-	// UserService follows the Hexagonal Architecture (Port).
-	UserService ports.UserService
-	// DB is used directly here for some methods (like GetUserThreadsHandler).
-	// This indicates the handler is still in transition to a full Hexagonal structure.
-	DB          *gorm.DB
+	UserService    ports.UserService
+	ThreadService  ports.ThreadService
+	SessionManager *middleware.SessionManager
 }
 
 // NewUserHandler initializes the handler with its dependencies.
-func NewUserHandler(userService ports.UserService, db *gorm.DB) *UserHandler {
-	return &UserHandler{UserService: userService, DB: db}
+func NewUserHandler(userService ports.UserService, threadService ports.ThreadService, sessionManager *middleware.SessionManager) *UserHandler {
+	return &UserHandler{
+		UserService:    userService,
+		ThreadService:  threadService,
+		SessionManager: sessionManager,
+	}
 }
 
 // UpdateUserRequest uses pointers (e.g., *string) to distinguish between:
@@ -70,7 +70,7 @@ func (h *UserHandler) UpdateUserHandler(c *fiber.Ctx) error {
 	username := c.Params("username")
 
 	// Verify the requester is logged in.
-	userID := middleware.GetUserID(c)
+	userID := h.SessionManager.GetUserID(c)
 	if userID == 0 {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Unauthorized",
@@ -137,58 +137,25 @@ func (h *UserHandler) UpdateUserHandler(c *fiber.Ctx) error {
 func (h *UserHandler) GetUserThreadsHandler(c *fiber.Ctx) error {
 	username := c.Params("username")
 
-	// Step 1: Find the user by username.
-	var user models.User
-	if result := h.DB.Where("username = ?", username).First(&user); result.Error != nil {
+	// Verify user exists first to return 404
+	_, err := h.UserService.GetUserProfile(c.Context(), username)
+	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "User not found",
 		})
 	}
 
-	// Step 2: Handle pagination queries (e.g., ?page=1&pageSize=5).
 	page, _ := strconv.Atoi(c.Query("page", "1"))
-	if page < 1 {
-		page = 1
-	}
 	pageSize, _ := strconv.Atoi(c.Query("pageSize", "5"))
-	if pageSize < 1 {
-		pageSize = 5
-	}
-	if pageSize > 50 {
-		pageSize = 50 // Cap page size for performance
-	}
 
-	// Step 3: Count total threads for pagination metadata.
-	var total int64
-	h.DB.Model(&models.Thread{}).Where("author_id = ?", user.ID).Count(&total)
-
-	// Step 4: Fetch the specific "slice" of threads for the current page.
-	offset := (page - 1) * pageSize
-	var threads []models.Thread
-	// Preload fetches related data (Author and Tags) in as few queries as possible.
-	h.DB.Preload("Author").Preload("Tags").
-		Where("author_id = ?", user.ID).
-		Order("created_at DESC").
-		Offset(offset).Limit(pageSize).
-		Find(&threads)
-
-	// Step 5: Format the database models into a JSON-friendly structure.
-	type threadItem struct {
-		ID           uint        `json:"id"`
-		Title        string      `json:"title"`
-		Slug         string      `json:"slug"`
-		Content      string      `json:"content"`
-		Status       string      `json:"status"`
-		ViewCount    uint        `json:"view_count"`
-		Upvotes      int64       `json:"upvotes"`
-		Downvotes    int64       `json:"downvotes"`
-		RepliesCount int64       `json:"replies_count"`
-		CreatedAt    string      `json:"created_at"`
-		Author       fiber.Map   `json:"author"`
-		Tags         []fiber.Map `json:"tags"`
+	threads, total, err := h.ThreadService.ListByUser(c.Context(), username, page, pageSize)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to fetch threads",
+		})
 	}
 
-	items := make([]threadItem, 0, len(threads))
+	items := make([]fiber.Map, 0, len(threads))
 	for _, t := range threads {
 		tags := make([]fiber.Map, 0, len(t.Tags))
 		for _, tag := range t.Tags {
@@ -199,27 +166,30 @@ func (h *UserHandler) GetUserThreadsHandler(c *fiber.Ctx) error {
 			})
 		}
 
-		items = append(items, threadItem{
-			ID:           t.ID,
-			Title:        t.Title,
-			Slug:         t.Slug,
-			Content:      t.Content,
-			Status:       t.Status,
-			ViewCount:    t.ViewCount,
-			Upvotes:      t.Upvotes(h.DB),
-			Downvotes:    t.Downvotes(h.DB),
-			RepliesCount: t.RepliesCount(h.DB),
-			CreatedAt:    t.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			Author: fiber.Map{
+		items = append(items, fiber.Map{
+			"id":            t.ID,
+			"title":         t.Title,
+			"slug":          t.Slug,
+			"content":       t.Content,
+			"status":        t.Status,
+			"view_count":    t.ViewCount,
+			"upvotes":       t.Upvotes,
+			"downvotes":     t.Downvotes,
+			"replies_count": t.RepliesCount,
+			"created_at":    t.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			"author": fiber.Map{
 				"id":       t.Author.ID,
 				"username": t.Author.Username,
 				"avatar":   t.Author.Avatar,
 			},
-			Tags: tags,
+			"tags": tags,
 		})
 	}
 
 	totalPages := int(math.Ceil(float64(total) / float64(pageSize)))
+	if totalPages == 0 {
+		totalPages = 1
+	}
 
 	return c.JSON(fiber.Map{
 		"threads": items,

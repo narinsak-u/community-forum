@@ -1,20 +1,24 @@
 package handlers
 
 import (
+	"community-forum/backend/internal/domain"
 	"community-forum/backend/internal/middleware"
-	"community-forum/backend/internal/models"
+	"community-forum/backend/internal/ports"
 
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 )
 
 // CommentHandler manages creation and deletion of comments.
 type CommentHandler struct {
-	DB *gorm.DB
+	CommentService ports.CommentService
+	SessionManager *middleware.SessionManager
 }
 
-func NewCommentHandler(db *gorm.DB) *CommentHandler {
-	return &CommentHandler{DB: db}
+func NewCommentHandler(commentService ports.CommentService, sessionManager *middleware.SessionManager) *CommentHandler {
+	return &CommentHandler{
+		CommentService: commentService,
+		SessionManager: sessionManager,
+	}
 }
 
 // CreateCommentRequest defines the input for a new comment or reply.
@@ -33,81 +37,32 @@ func (h *CommentHandler) CreateCommentHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	// Basic validation for content length.
-	if len(req.Content) < 2 || len(req.Content) > 10000 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Content must be between 2 and 10000 characters",
-		})
-	}
-
-	// Verify the thread exists via its slug.
 	slug := c.Params("slug")
-	var thread models.Thread
-	if result := h.DB.Where("slug = ?", slug).First(&thread); result.Error != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Thread not found",
-		})
-	}
+	userID := h.SessionManager.GetUserID(c)
 
-	// If this is a reply (ParentID is set), perform additional checks.
-	if req.ParentID != nil {
-		var parent models.Comment
-		if result := h.DB.First(&parent, *req.ParentID); result.Error != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Parent comment not found",
+	comment, err := h.CommentService.Create(c.Context(), slug, req.Content, req.ParentID, userID)
+	if err != nil {
+		if err.Error() == "Thread not found" {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "Thread not found",
 			})
 		}
-
-		// Ensure the parent comment actually belongs to the same thread.
-		if parent.ThreadID != thread.ID {
+		if err.Error() == "Content must be between 2 and 10000 characters" ||
+			err.Error() == "Parent comment not found" ||
+			err.Error() == "Parent comment does not belong to this thread" ||
+			err.Error() == "Replies can only be 1 level deep" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Parent comment does not belong to this thread",
+				"error": err.Error(),
 			})
 		}
-
-		// Prevent deeply nested comments (only allow 1 level of nesting).
-		if parent.ParentID != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Replies can only be 1 level deep",
-			})
-		}
-	}
-
-	// Get logged-in user ID.
-	userID := middleware.GetUserID(c)
-
-	// Create the comment record.
-	comment := models.Comment{
-		Content:  req.Content,
-		ThreadID: thread.ID,
-		AuthorID: userID,
-		ParentID: req.ParentID,
-	}
-
-	if result := h.DB.Create(&comment); result.Error != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to create comment",
 		})
 	}
 
-	// Preload Author so the frontend knows who wrote the comment.
-	h.DB.Preload("Author").First(&comment, comment.ID)
-
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"message": "Comment posted",
-		"comment": fiber.Map{
-			"id":        comment.ID,
-			"content":   comment.Content,
-			"upvotes":   comment.Upvotes(h.DB),
-			"downvotes": comment.Downvotes(h.DB),
-			"author": fiber.Map{
-				"id":       comment.Author.ID,
-				"username": comment.Author.Username,
-				"avatar":   comment.Author.Avatar,
-			},
-			"replies":    []interface{}{},
-			"created_at": comment.CreatedAt,
-		},
+		"comment": mapCommentToResponse(comment),
 	})
 }
 
@@ -121,30 +76,43 @@ func (h *CommentHandler) DeleteCommentHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	var comment models.Comment
-	if result := h.DB.First(&comment, commentID); result.Error != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Comment not found",
+	userID := h.SessionManager.GetUserID(c)
+	userRole := h.SessionManager.GetUserRole(c)
+
+	err = h.CommentService.Delete(c.Context(), uint(commentID), userID, userRole)
+	if err != nil {
+		if err.Error() == "Comment not found" {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "Comment not found",
+			})
+		}
+		if err.Error() == "You do not have permission to delete this comment" {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to delete comment",
 		})
 	}
-
-	userID := middleware.GetUserID(c)
-	userRole := middleware.GetUserRole(c)
-
-	// Security: Only the author or an admin can delete a comment.
-	if comment.AuthorID != userID && userRole != "admin" {
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-			"error": "You do not have permission to delete this comment",
-		})
-	}
-
-	// Clean up: If we delete a comment, we should also delete its replies.
-	h.DB.Where("parent_id = ?", comment.ID).Delete(&models.Comment{})
-
-	// Perform the deletion.
-	h.DB.Delete(&comment)
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Comment deleted",
 	})
+}
+
+func mapCommentToResponse(c *domain.Comment) fiber.Map {
+	return fiber.Map{
+		"id":        c.ID,
+		"content":   c.Content,
+		"upvotes":   c.Upvotes,
+		"downvotes": c.Downvotes,
+		"author": fiber.Map{
+			"id":       c.Author.ID,
+			"username": c.Author.Username,
+			"avatar":   c.Author.Avatar,
+		},
+		"replies":    []interface{}{},
+		"created_at": c.CreatedAt,
+	}
 }

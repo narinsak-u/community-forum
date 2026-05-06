@@ -6,8 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	db_adapter "community-forum/backend/internal/adapters/db"
 	"community-forum/backend/internal/handlers"
-	"community-forum/backend/internal/middleware"
+	"community-forum/backend/internal/usecase"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,12 @@ import (
 
 func setupVoteApp(db *gorm.DB) *fiber.App {
 	app := fiber.New()
-	voteHandler := handlers.NewVoteHandler(db)
+	sessionManager := setupTestSessionManager()
+	voteRepo := db_adapter.NewGORMVoteRepository(db)
+	threadRepo := db_adapter.NewGORMThreadRepository(db)
+	commentRepo := db_adapter.NewGORMCommentRepository(db)
+	voteService := usecase.NewVoteService(voteRepo, threadRepo, commentRepo)
+	voteHandler := handlers.NewVoteHandler(voteService, sessionManager)
 
 	app.Post("/api/threads/:slug/vote", voteHandler.VoteThreadHandler)
 	app.Post("/api/comments/:id/vote", voteHandler.VoteCommentHandler)
@@ -26,7 +32,6 @@ func setupVoteApp(db *gorm.DB) *fiber.App {
 }
 
 func TestVoteThreadHandler_InvalidBody(t *testing.T) {
-	middleware.InitSessionStore()
 	app := setupVoteApp(nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/threads/test-thread/vote", strings.NewReader(`bad`))
@@ -38,7 +43,6 @@ func TestVoteThreadHandler_InvalidBody(t *testing.T) {
 }
 
 func TestVoteThreadHandler_InvalidValue(t *testing.T) {
-	middleware.InitSessionStore()
 	app := setupVoteApp(nil)
 
 	body := `{"value":99}`
@@ -51,7 +55,6 @@ func TestVoteThreadHandler_InvalidValue(t *testing.T) {
 }
 
 func TestVoteCommentHandler_InvalidBody(t *testing.T) {
-	middleware.InitSessionStore()
 	app := setupVoteApp(nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/comments/1/vote", strings.NewReader(`bad`))
@@ -63,7 +66,6 @@ func TestVoteCommentHandler_InvalidBody(t *testing.T) {
 }
 
 func TestVoteCommentHandler_InvalidCommentID(t *testing.T) {
-	middleware.InitSessionStore()
 	app := setupVoteApp(nil)
 
 	body := `{"value":1}`
@@ -76,7 +78,6 @@ func TestVoteCommentHandler_InvalidCommentID(t *testing.T) {
 }
 
 func TestVoteCommentHandler_InvalidValue(t *testing.T) {
-	middleware.InitSessionStore()
 	app := setupVoteApp(nil)
 
 	body := `{"value":99}`
