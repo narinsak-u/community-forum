@@ -13,6 +13,7 @@ community-forum/
 ## Frontend
 
 **Tech Stack:**
+
 - React 18 + TypeScript
 - Vite (build tool)
 - Tailwind CSS
@@ -23,6 +24,7 @@ community-forum/
 - Bun (runtime)
 
 **Pages:**
+
 - `/` - Home (thread list)
 - `/login` - Login/Signup
 - `/thread/:slug` - Thread detail
@@ -31,6 +33,7 @@ community-forum/
 - `/settings` - Settings
 
 **Commands:**
+
 ```bash
 cd frontend
 bun install          # Install dependencies
@@ -43,6 +46,7 @@ bun run lint         # Run ESLint
 ## Backend
 
 **Tech Stack:**
+
 - Go 1.24
 - Fiber (HTTP framework)
 - GORM (ORM)
@@ -50,6 +54,7 @@ bun run lint         # Run ESLint
 - Docker + Docker Compose
 
 **Structure:**
+
 ```
 backend/
 ├── cmd/server/       # Entry point
@@ -63,6 +68,7 @@ backend/
 ```
 
 **Models:**
+
 - User
 - Thread
 - Comment
@@ -70,6 +76,7 @@ backend/
 - Vote
 
 **Commands:**
+
 ```bash
 cd backend
 
@@ -85,9 +92,10 @@ go build -o server ./cmd/server
 
 **Environment Variables:**
 Copy `.env.example` to `.env`:
+
 ```env
 DB_HOST=localhost
-DB_PORT=5432
+DB_PORT=5433
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_NAME=community_forum
@@ -96,6 +104,7 @@ PORT=8080
 ```
 
 **API Endpoints:**
+
 - `GET /` - Health check
 - `GET /health` - Health check
 - `GET /api/v1/threads` - List all threads
@@ -104,6 +113,7 @@ PORT=8080
 ## Getting Started
 
 1. **Frontend:**
+
    ```bash
    cd frontend
    bun install

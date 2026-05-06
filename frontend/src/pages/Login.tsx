@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, KeyRound, User, Mail, ShieldCheck, Fingerprint } from "lucide-react";
 import { toast } from "sonner";
+import { useSignin, useSignup } from "@/hooks/use-auth";
 
 type Mode = "signin" | "signup";
 
@@ -15,6 +16,13 @@ const Login = () => {
   const [mode, setMode] = useState<Mode>(initial);
   const [persist, setPersist] = useState(false);
   const [agree, setAgree] = useState(false);
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const signin = useSignin();
+  const signup = useSignup();
 
   const switchMode = (next: Mode) => {
     setMode(next);
@@ -23,18 +31,51 @@ const Login = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === "signup" && !agree) {
-      toast.error("PROTOCOL_ACK required", {
-        description: "Acknowledge the Forge Protocol to continue.",
-      });
-      return;
+
+    if (mode === "signup") {
+      if (!agree) {
+        toast.error("PROTOCOL_ACK required", {
+          description: "Acknowledge the Forge Protocol to continue.",
+        });
+        return;
+      }
+      if (password !== confirmPassword) {
+        toast.error("KEY_MISMATCH", {
+          description: "Access codes do not match.",
+        });
+        return;
+      }
+
+      signup.mutate(
+        { username, email, password },
+        {
+          onSuccess: () => {
+            toast.success("IDENTITY_FORGED", {
+              description: "Identity registered. You may now sign in.",
+            });
+            switchMode("signin");
+          },
+          onError: (err) => {
+            toast.error("FORGE_FAILED", { description: err.message });
+          },
+        },
+      );
+    } else {
+      signin.mutate(
+        { login: username, password },
+        {
+          onSuccess: () => {
+            toast.success("SESSION_INITIATED", {
+              description: "Handshake complete. Routing to nexus...",
+            });
+            setTimeout(() => navigate("/"), 600);
+          },
+          onError: (err) => {
+            toast.error("AUTH_FAILED", { description: err.message });
+          },
+        },
+      );
     }
-    toast.success(mode === "signup" ? "IDENTITY_FORGED" : "SESSION_INITIATED", {
-      description: mode === "signup"
-        ? "New architect registered. Routing to nexus..."
-        : "Handshake complete. Routing to nexus...",
-    });
-    setTimeout(() => navigate("/"), 600);
   };
 
   return (
@@ -126,6 +167,8 @@ const Login = () => {
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/70" />
                 <Input
                   required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   placeholder="Architect_Name"
                   className="pl-10 h-11 bg-transparent border-0 border-b border-border/80 rounded-none focus-visible:ring-0 focus-visible:border-primary text-foreground"
                 />
@@ -140,6 +183,8 @@ const Login = () => {
                   <Input
                     required
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="architect@forge.net"
                     className="pl-10 h-11 bg-transparent border-0 border-b border-border/80 rounded-none focus-visible:ring-0 focus-visible:border-primary text-foreground"
                   />
@@ -154,6 +199,8 @@ const Login = () => {
                 <Input
                   required
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
                   className="pl-10 h-11 bg-transparent border-0 border-b border-border/80 rounded-none focus-visible:ring-0 focus-visible:border-primary text-foreground"
                 />
@@ -176,6 +223,8 @@ const Login = () => {
                   <Input
                     required
                     type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••••••"
                     className="pl-10 h-11 bg-transparent border-0 border-b border-border/80 rounded-none focus-visible:ring-0 focus-visible:border-primary text-foreground"
                   />
@@ -212,9 +261,14 @@ const Login = () => {
 
             <Button
               type="submit"
+              disabled={signin.isPending || signup.isPending}
               className="w-full h-12 bg-gradient-signal hover:opacity-90 text-primary-foreground font-bold uppercase tracking-[0.2em] text-xs rounded-sm group"
             >
-              {mode === "signin" ? "INITIATE_SESSION" : "FORGE_IDENTITY"}
+              {signin.isPending || signup.isPending
+                ? "PROCESSING..."
+                : mode === "signin"
+                  ? "INITIATE_SESSION"
+                  : "FORGE_IDENTITY"}
               <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
 
@@ -232,11 +286,11 @@ const Login = () => {
 
             <button
               type="button"
-              onClick={() => toast.info("UI-only mode — wire up Lovable Cloud to enable real auth.")}
+              onClick={() => switchMode("signup")}
               className="w-full h-11 border border-border/80 hover:border-primary/60 text-foreground font-mono text-[11px] uppercase tracking-[0.18em] rounded-sm transition-colors flex items-center justify-center gap-3"
             >
               <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
-              GUEST_HANDSHAKE
+              FORGE_NEW_IDENTITY
             </button>
 
             <div className="pt-3 border-t border-border/60">

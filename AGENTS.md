@@ -2,12 +2,12 @@
 
 ## Project Overview
 
-This is a full-stack community forum with React frontend and Go backend.
+Full-stack community forum: React frontend + Go Fiber backend.
 
 ```
 community-forum/
-├── frontend/          # React + TypeScript frontend
-└── backend/           # Go Fiber backend
+├── frontend/          # React + TypeScript + Vite
+└── backend/           # Go Fiber + GORM + PostgreSQL
 ```
 
 ---
@@ -17,33 +17,29 @@ community-forum/
 ### Development
 ```bash
 cd frontend
-bun run dev          # Start dev server on port 8080
+bun run dev          # Dev server on port 8080
 bun run preview      # Preview production build
 ```
 
-### Build
+### Build & Lint
 ```bash
 bun run build        # Production build to dist/
 bun run build:dev   # Development build
-```
-
-### Linting
-```bash
-bun run lint         # Run ESLint on all files
+bun run lint        # Run ESLint
 ```
 
 ### Testing (Vitest)
 ```bash
 bun test             # Run all tests once
-bun run test:watch   # Run tests in watch mode
+bun run test:watch   # Watch mode
 
-# Run a single test file
+# Single test file
 bunx vitest run frontend/src/test/example.test.ts
 
-# Run tests matching a pattern
+# Tests matching pattern
 bunx vitest run --grep "example"
 
-# Run tests in a specific directory
+# Tests in directory
 bunx vitest run frontend/src/test/
 ```
 
@@ -51,31 +47,20 @@ bunx vitest run frontend/src/test/
 
 ## Backend Commands
 
-### Running the Server
+### Running Server
 ```bash
 cd backend
-
-# Start PostgreSQL (required)
-docker-compose up -d
-
-# Run server
-go run ./cmd/server
-
-# Build
-go build -o server ./cmd/server
+docker-compose up -d    # Start PostgreSQL
+go run ./cmd/server    # Run server
+go build -o server ./cmd/server  # Build
 ```
 
-### Testing
+### Testing & Linting
 ```bash
 cd backend
-go test ./...           # Run all tests
-go test ./... -v        # Run with verbose output
-go test -run TestName   # Run specific test
-```
-
-### Linting (Go)
-```bash
-cd backend
+go test ./...          # Run all tests
+go test ./... -v       # Verbose output
+go test -run TestName  # Run specific test
 go fmt ./...           # Format code
 go vet ./...           # Run go vet
 ```
@@ -85,43 +70,33 @@ go vet ./...           # Run go vet
 ## Frontend Code Style
 
 ### General
-- React 18 + TypeScript + Vite with Tailwind CSS and shadcn/ui
+- React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui
 - Use `@/` path alias for imports (configured in tsconfig.json)
-- TypeScript strict mode is disabled - implicit `any` allowed
+- TypeScript strict mode disabled - implicit `any` allowed
 
-### Imports
-- Use absolute imports: `import Button from "@/components/ui/button"`
+### Imports & Naming
+- Absolute imports: `import Button from "@/components/ui/button"`
 - Group: external libs → internal components → local utilities
 - Use `type` keyword for type-only imports
+- **Components**: PascalCase (Button, AppLayout)
+- **Hooks**: camelCase with `use` prefix (useToast)
+- **Utilities**: camelCase (cn, formatDate)
+- **Files**: PascalCase for components, camelCase for utils
 
 ### Components
 - Functional components with arrow functions or `function` declarations
 - Use React.forwardRef for ref forwarding
 - Use CVA (class-variance-authority) for variants
 - Named exports with default for page components
+- interfaces for object shapes, type for unions/tuples
 
-### Naming
-- **Components**: PascalCase (Button, AppLayout)
-- **Hooks**: camelCase with `use` prefix (useToast)
-- **Utilities**: camelCase (cn, formatDate)
-- **Files**: PascalCase for components, camelCase for utils
-
-### Types
-- interfaces for object shapes
-- type for unions/tuples
-- Use `VariantProps<T>` from CVA for variant types
-
-### CSS
-- Use Tailwind utility classes
-- Use `cn()` from `@/lib/utils` to merge classes
-- Custom classes: `panel`, `terminal-label`, `heading-display`
-
-### React Patterns
+### CSS & Patterns
+- Tailwind utility classes + `cn()` from `@/lib/utils` for class merging
 - TanStack Query for data fetching
 - React Router v6 for routing
 - react-hook-form + zod for forms
 
-### What NOT to Do (Frontend)
+### What NOT to Do
 - No default exports for components
 - No CSS files - use Tailwind
 - No creating folders at root level
@@ -129,11 +104,6 @@ go vet ./...           # Run go vet
 ---
 
 ## Backend Code Style (Go)
-
-### General
-- Go 1.24 with Fiber web framework
-- GORM for ORM with PostgreSQL
-- Follow standard Go project layout
 
 ### Structure
 ```
@@ -144,66 +114,32 @@ backend/
 │   ├── models/      # GORM models
 │   ├── schemas/    # Request/response types
 │   └── middleware/ # Custom middleware
-├── migrations/     # DB migrations
+├── migrations/      # DB migrations
 └── docker-compose.yml
 ```
 
-### Naming Conventions
+### Naming & Error Handling
 - **Files**: lowercase with underscores (user_model.go)
 - **Functions**: PascalCase exported, camelCase unexported
 - **Constants**: UPPER_SNAKE_CASE
 - **Packages**: lowercase, single word preferred
-
-### Error Handling
-- Return errors with context using `fmt.Errorf("context: %w", err)`
+- Return errors with context: `fmt.Errorf("context: %w", err)`
 - Use custom error types for domain errors
-- Handle errors at the handler level, return proper HTTP codes
+- Handle errors at handler level, return proper HTTP codes
 
 ### Database
 - Use GORM for all database operations
 - Follow model structure in `internal/models/models.go`
 - Use migrations for schema changes
 
-### What NOT to Do (Backend)
+### What NOT to Do
 - No business logic in handlers - delegate to services
 - Don't use global variables for state
 - Don't hardcode connection strings - use env vars
 
 ---
 
-## Project Structure
-
-### Frontend (`frontend/src/`)
-```
-src/
-├── components/ui/    # shadcn/ui components
-├── components/forge/ # Custom app components
-├── hooks/           # Custom React hooks
-├── lib/             # Utilities
-├── pages/           # Route pages
-├── test/            # Test files
-└── App.tsx          # Root component
-```
-
-### Backend (`backend/`)
-```
-backend/
-├── cmd/server/      # Entry point
-├── internal/         # Private packages
-│   ├── handlers/    # HTTP handlers
-│   ├── models/       # GORM models
-│   └── middleware/   # Middleware
-└── docker-compose.yml
-```
-
----
-
 ## Testing
 
-### Frontend
-- Vitest + @testing-library/react
-- Files: `*.test.ts` or `*.test.tsx` in `src/test/`
-
-### Backend
-- Standard Go testing
-- Files: `*_test.go` alongside source files
+- **Frontend**: Vitest + @testing-library/react, files in `src/test/*.test.ts`
+- **Backend**: Standard Go testing, files `*_test.go` alongside source files
