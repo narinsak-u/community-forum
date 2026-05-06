@@ -7,7 +7,7 @@ export interface User {
   avatar: string;
   bio: string;
   role: string;
-  stacks: string;
+  stacks?: string[];
   created_at: string;
 }
 

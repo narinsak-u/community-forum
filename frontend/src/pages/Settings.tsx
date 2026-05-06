@@ -5,6 +5,11 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Shield, Bell, Palette, Eye, Plug, CreditCard, LogOut, Terminal as TerminalIcon, RotateCcw } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useAuthStore } from "@/stores/auth-store";
+import { useSignout } from "@/hooks/use-auth";
+import { useUpdateProfile } from "@/hooks/use-user";
 
 const sideItems = [
   { label: "Account Security", icon: Shield, active: true },
@@ -16,11 +21,35 @@ const sideItems = [
 ];
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [twofa, setTwofa] = useState(true);
   const [alerts, setAlerts] = useState(true);
   const [direct, setDirect] = useState(true);
   const [digest, setDigest] = useState(false);
   const [accent, setAccent] = useState(0);
+
+  const user = useAuthStore((s) => s.user);
+  const signout = useSignout();
+  const updateProfile = useUpdateProfile(user?.username || "");
+
+  const handleLogout = () => {
+    signout.mutate(undefined, {
+      onSuccess: () => {
+        toast.success("SESSION_TERMINATED");
+        navigate("/login");
+      },
+    });
+  };
+
+  const handleCommit = () => {
+    updateProfile.mutate(
+      {},
+      {
+        onSuccess: () => toast.success("CONFIG_COMMITTED"),
+        onError: (err) => toast.error("COMMIT_FAILED", { description: err.message }),
+      },
+    );
+  };
 
   return (
     <AppLayout showSidebar={false}>
@@ -43,7 +72,10 @@ const Settings = () => {
               </button>
             ))}
           </nav>
-          <button className="flex items-center gap-3 px-3 py-2.5 text-sm text-muted-foreground hover:text-destructive border-t border-border/60 pt-4">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2.5 text-sm text-muted-foreground hover:text-destructive border-t border-border/60 pt-4"
+          >
             <LogOut className="h-4 w-4" /> LOGOUT
           </button>
         </aside>
@@ -52,7 +84,7 @@ const Settings = () => {
           <header className="space-y-2">
             <h1 className="heading-display text-5xl italic text-foreground tracking-tight">CONTROL PANEL</h1>
             <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-              SYSTEM CONFIGURATION <span className="text-primary">/</span> NODE 7A-FORGE
+              SYSTEM CONFIGURATION <span className="text-primary">/</span> {user?.username?.replace("@", "").toUpperCase() || "NODE"}
             </div>
           </header>
 
@@ -65,7 +97,11 @@ const Settings = () => {
               </div>
               <div className="space-y-2">
                 <label className="terminal-label">EMAIL ADDRESS</label>
-                <Input defaultValue="architect@midnight-forge.io" className="bg-terminal border-border font-mono rounded-sm" />
+                <Input
+                  defaultValue={user?.email || "architect@midnight-forge.io"}
+                  className="bg-terminal border-border font-mono rounded-sm"
+                  disabled
+                />
               </div>
               <div className="space-y-2">
                 <label className="terminal-label">PASSWORD</label>
@@ -198,8 +234,12 @@ const Settings = () => {
               <Button variant="ghost" className="text-muted-foreground hover:text-foreground uppercase text-xs tracking-[0.18em]">
                 RESET DEFAULTS
               </Button>
-              <Button className="bg-gradient-signal hover:opacity-90 text-primary-foreground font-bold uppercase tracking-[0.18em] text-xs rounded-sm">
-                COMMIT CHANGES
+              <Button
+                onClick={handleCommit}
+                disabled={updateProfile.isPending}
+                className="bg-gradient-signal hover:opacity-90 text-primary-foreground font-bold uppercase tracking-[0.18em] text-xs rounded-sm"
+              >
+                {updateProfile.isPending ? "COMMITTING..." : "COMMIT CHANGES"}
               </Button>
             </div>
           </div>

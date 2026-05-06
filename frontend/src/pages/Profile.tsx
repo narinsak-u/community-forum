@@ -1,10 +1,12 @@
+import { useParams } from "react-router-dom";
 import { AppLayout } from "@/components/forge/AppLayout";
 import { SectionLabel } from "@/components/forge/SectionLabel";
-import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Fingerprint, Terminal, Shield, Archive, FileText, FileText as FileIcon, Globe, Lock, Plus } from "lucide-react";
 import avatarImg from "@/assets/forge-avatar.jpg";
+import { useUserProfile } from "@/hooks/use-user";
 
 const navItems = [
   { label: "Identity", icon: Fingerprint, active: true },
@@ -21,6 +23,33 @@ const vaultItems = [
 ];
 
 const Profile = () => {
+  const { username } = useParams<{ username: string }>();
+  const { data: profile, isLoading } = useUserProfile(username || "");
+
+  if (isLoading) {
+    return (
+      <AppLayout showSidebar={false}>
+        <div className="grid lg:grid-cols-[260px,1fr] gap-0 min-h-[calc(100vh-4rem)]">
+          <aside className="border-r border-border/60 bg-sidebar/40 p-6 space-y-6">
+            <Skeleton className="h-10 w-full" />
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </aside>
+          <div className="p-8 lg:p-10 space-y-10">
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const displayName = profile?.username || "NODE_8829";
+  const role = profile?.role || "SENIOR ARCHITECT";
+  const bio = profile?.bio || "No bio available.";
+  const stacks = profile?.stacks || ["Rust", "Solidity", "Go"];
+
   return (
     <AppLayout showSidebar={false}>
       <div className="grid lg:grid-cols-[260px,1fr] gap-0 min-h-[calc(100vh-4rem)]">
@@ -31,8 +60,8 @@ const Profile = () => {
               <Fingerprint className="h-4 w-4" />
             </div>
             <div>
-              <div className="text-sm font-bold">NODE_8829</div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Senior Architect</div>
+              <div className="text-sm font-bold">{displayName}</div>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{role}</div>
             </div>
           </div>
           <nav className="space-y-1">
@@ -58,12 +87,16 @@ const Profile = () => {
           {/* Header */}
           <section className="grid md:grid-cols-[120px,1fr,auto] gap-6 items-start">
             <div className="h-28 w-28 panel overflow-hidden">
-              <img src={avatarImg} alt="Node avatar" className="w-full h-full object-cover" width={512} height={512} />
+              {profile?.avatar ? (
+                <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" width={512} height={512} />
+              ) : (
+                <img src={avatarImg} alt="Node avatar" className="w-full h-full object-cover" width={512} height={512} />
+              )}
             </div>
             <div className="space-y-3">
-              <h1 className="heading-display text-5xl text-foreground">NODE_8829</h1>
+              <h1 className="heading-display text-5xl text-foreground">{displayName}</h1>
               <div className="text-xs uppercase tracking-[0.2em] text-primary font-mono">
-                SENIOR ARCHITECT // SYSTEMS INTEGRATOR
+                {role} // SYSTEMS INTEGRATOR
               </div>
               <div className="flex flex-wrap gap-2 pt-1">
                 <Badge className="bg-primary/10 text-primary border border-primary/30 rounded-sm uppercase text-[10px] tracking-[0.18em]">● CORE_CONTRIBUTOR</Badge>
@@ -91,15 +124,15 @@ const Profile = () => {
               <div className="space-y-4">
                 <SectionLabel>SYSTEM IDENTITY</SectionLabel>
                 <p className="text-sm text-foreground/85 leading-relaxed">
-                  Specializing in decentralized infrastructure and encrypted communication protocols. Former lead dev for Project Wraith. Currently optimizing neural-link throughput for the ARCHITECT_FORUM core.
+                  {bio}
                 </p>
               </div>
 
               <div className="panel p-5 space-y-3">
                 <div className="text-[10px] uppercase tracking-[0.18em] text-primary">TECHNICAL_STACK</div>
                 <div className="flex flex-wrap gap-2">
-                  {["Rust", "Solidity", "Go", "Post-Quantum Cryptography"].map((t) => (
-                    <span key={t} className="px-2.5 py-1 bg-secondary border border-border text-xs text-foreground rounded-sm">{t}</span>
+                  {stacks.map((stack) => (
+                    <span key={stack} className="px-2.5 py-1 bg-secondary border border-border text-xs text-foreground rounded-sm">{stack}</span>
                   ))}
                 </div>
               </div>
