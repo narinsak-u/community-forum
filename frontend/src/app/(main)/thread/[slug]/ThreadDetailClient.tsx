@@ -218,7 +218,7 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-secondary border border-border grid place-items-center text-[10px] font-mono text-primary">
-                    {comment.author?.username?.replace("@", "").slice(0, 2).toUpperCase() or "??"}
+                    {comment.author?.username?.replace("@", "").slice(0, 2).toUpperCase() ?? "??"}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
