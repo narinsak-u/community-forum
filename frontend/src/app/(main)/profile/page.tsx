@@ -1,5 +1,3 @@
-"use client";
-
 import { ProfileContent } from "./ProfileContent";
 
 export default function MyProfilePage() {
