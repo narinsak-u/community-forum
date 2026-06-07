@@ -1,8 +1,9 @@
 "use client";
 
 import { ActiveLink } from "@/components/ActiveLink";
-import { Bell, Settings, Search, User } from "lucide-react";
+import { Bell, Settings, Search, User, Sun, Moon } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useTheme } from "@/components/theme-provider";
 
 const navItems = [
   { to: "/", label: "Nexus" },
@@ -12,19 +13,31 @@ const navItems = [
 ];
 
 export const TopNav = () => {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl">
-      <div className="flex h-16 items-center gap-6 px-6">
+      <div className="flex h-16 items-center gap-6 px-3">
+        {/* logo */}
         <ActiveLink href="/" className="flex items-center gap-2 group">
-          <div className="h-8 w-8 grid place-items-center bg-gradient-signal rounded-sm font-display font-bold text-primary-foreground">
-            M
+          <div className="w-56">
+            <div className="flex items-center mx-auto gap-3 py-2 rounded-sm ">
+              <div className="h-10 w-10 bg-gradient-signal grid place-items-center rounded-sm">
+                <div className="h-4 w-4 bg-background/30 rotate-45" />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-foreground">
+                  Midnight Forge
+                </div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Technical Forum
+                </div>
+              </div>
+            </div>
           </div>
-          <span className="font-display font-bold text-lg tracking-wide text-foreground group-hover:text-primary transition-colors">
-            MIDNIGHT<span className="text-primary">FORGE</span>
-          </span>
         </ActiveLink>
 
-        <nav className="hidden md:flex items-center gap-1 ml-4">
+        <nav className="hidden md:flex items-center gap-1">
           {navItems.map((item) => (
             <ActiveLink
               key={item.to}
@@ -38,7 +51,7 @@ export const TopNav = () => {
           ))}
         </nav>
 
-        <div className="flex-1 max-w-md ml-auto relative">
+        <div className="max-w-sm ml-auto relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder="TERMINAL_SEARCH..."
@@ -51,12 +64,32 @@ export const TopNav = () => {
             <Bell className="h-4 w-4" />
             <span className="absolute top-2 right-2 h-1.5 w-1.5 bg-primary rounded-full animate-pulse-signal" />
           </button>
-          <ActiveLink href="/settings" className="h-9 w-9 grid place-items-center text-muted-foreground hover:text-primary transition-colors">
+          <ActiveLink
+            href="/settings"
+            className="h-9 w-9 grid place-items-center text-muted-foreground hover:text-primary transition-colors"
+          >
             <Settings className="h-4 w-4" />
           </ActiveLink>
-          <ActiveLink href="/profile" className="h-9 w-9 grid place-items-center bg-secondary border border-border rounded-sm hover:border-primary transition-colors">
+          <ActiveLink
+            href="/profile"
+            className="h-9 w-9 grid place-items-center bg-secondary border border-border rounded-sm hover:border-primary transition-colors"
+          >
             <User className="h-4 w-4 text-primary" />
           </ActiveLink>
+
+          <button
+            onClick={toggleTheme}
+            className="h-9 w-9 grid place-items-center text-muted-foreground hover:text-primary transition-colors"
+            aria-label={
+              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+            }
+          >
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
+          </button>
         </div>
       </div>
     </header>

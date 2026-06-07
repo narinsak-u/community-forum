@@ -19,7 +19,7 @@ const footerItems = [
 export const Sidebar = ({ showNewEntry = false }: { showNewEntry?: boolean }) => {
   return (
     <aside className="w-64 shrink-0 border-r border-border/60 bg-sidebar/40 min-h-[calc(100vh-4rem)] flex flex-col">
-      <div className="p-4 border-b border-border/60">
+      {/*<div className="p-4 border-b border-border/60">
         <div className="flex items-center gap-3 p-2 rounded-sm bg-secondary/40">
           <div className="h-10 w-10 bg-gradient-signal grid place-items-center rounded-sm">
             <div className="h-4 w-4 bg-background/30 rotate-45" />
@@ -29,7 +29,7 @@ export const Sidebar = ({ showNewEntry = false }: { showNewEntry?: boolean }) =>
             <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Technical Forum</div>
           </div>
         </div>
-      </div>
+      </div>*/}
 
       <nav className="p-3 space-y-1 flex-1">
         {items.map((item) => (

@@ -35,7 +35,8 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${jetbrainsMono.variable} ${spaceGrotesk.variable} mx-auto max-w-4/5`}
+      className={`${jetbrainsMono.variable} ${spaceGrotesk.variable} mx-auto w-full`}
+      suppressHydrationWarning
     >
       <body>
         <Providers>{children}</Providers>

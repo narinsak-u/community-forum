@@ -4,6 +4,49 @@
 
 @layer base {
   :root {
+    --background: 40 25% 95%;
+    --foreground: 220 20% 12%;
+    --card: 40 20% 97%;
+    --card-foreground: 220 20% 12%;
+    --popover: 40 20% 97%;
+    --popover-foreground: 220 20% 12%;
+    --primary: 18 85% 55%;
+    --primary-foreground: 40 25% 98%;
+    --primary-glow: 22 90% 60%;
+    --primary-deep: 14 70% 40%;
+    --secondary: 220 12% 88%;
+    --secondary-foreground: 220 20% 15%;
+    --muted: 40 15% 90%;
+    --muted-foreground: 220 10% 40%;
+    --accent: 18 85% 55%;
+    --accent-foreground: 220 20% 8%;
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 40 25% 98%;
+    --border: 220 15% 82%;
+    --input: 220 12% 85%;
+    --ring: 18 85% 55%;
+    --radius: 0.25rem;
+    --terminal: 40 20% 92%;
+    --terminal-foreground: 220 20% 15%;
+    --grid-line: 18 60% 45%;
+    --success: 145 60% 40%;
+    --gradient-signal: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
+    --gradient-fade: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(40 25% 93%) 100%);
+    --gradient-panel: linear-gradient(180deg, hsl(40 20% 97%) 0%, hsl(40 20% 95%) 100%);
+    --shadow-signal: 0 0 30px -5px hsl(var(--primary) / 0.3);
+    --shadow-panel: 0 8px 40px -12px hsl(0 0% 0% / 0.1);
+    --glow-text: 0 0 20px hsl(var(--primary) / 0.3);
+    --sidebar-background: 40 20% 94%;
+    --sidebar-foreground: 220 15% 20%;
+    --sidebar-primary: 18 85% 55%;
+    --sidebar-primary-foreground: 40 25% 98%;
+    --sidebar-accent: 220 12% 85%;
+    --sidebar-accent-foreground: 220 20% 12%;
+    --sidebar-border: 220 15% 82%;
+    --sidebar-ring: 18 85% 55%;
+  }
+
+  .dark {
     --background: 220 15% 6%;
     --foreground: 30 25% 92%;
     --card: 220 15% 8%;
@@ -45,11 +88,6 @@
     --sidebar-border: 220 14% 12%;
     --sidebar-ring: 18 85% 60%;
   }
-
-  .dark {
-    --background: 220 15% 6%;
-    --foreground: 30 25% 92%;
-  }
 }
 
 @layer base {
@@ -58,6 +96,9 @@
   }
 
   html {
+    color-scheme: light;
+  }
+  html.dark {
     color-scheme: dark;
   }
 
