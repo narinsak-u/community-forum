@@ -1,18 +1,16 @@
-import { TopNav } from "./TopNav";
-import { Sidebar } from "./Sidebar";
+import { TopNav } from "@/components/forge/TopNav";
+import { Sidebar } from "@/components/forge/Sidebar";
 
-interface AppLayoutProps {
+export default function MainLayout({
+  children,
+}: {
   children: React.ReactNode;
-  showSidebar?: boolean;
-  showNewEntry?: boolean;
-}
-
-export const AppLayout = ({ children, showSidebar = true, showNewEntry = false }: AppLayoutProps) => {
+}) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <TopNav />
       <div className="flex flex-1 w-full">
-        {showSidebar && <Sidebar showNewEntry={showNewEntry} />}
+        <Sidebar showNewEntry />
         <main className="flex-1 min-w-0">{children}</main>
       </div>
       <footer className="border-t border-border/60 mt-auto">
@@ -27,4 +25,4 @@ export const AppLayout = ({ children, showSidebar = true, showNewEntry = false }
       </footer>
     </div>
   );
-};
+}

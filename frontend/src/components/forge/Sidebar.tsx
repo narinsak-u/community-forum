@@ -1,4 +1,6 @@
-import { NavLink } from "@/components/NavLink";
+"use client";
+
+import { ActiveLink } from "@/components/ActiveLink";
 import { LayoutGrid, MessagesSquare, Shapes, BookOpen, HelpCircle, Archive, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -31,39 +33,39 @@ export const Sidebar = ({ showNewEntry = false }: { showNewEntry?: boolean }) =>
 
       <nav className="p-3 space-y-1 flex-1">
         {items.map((item) => (
-          <NavLink
+          <ActiveLink
             key={item.label}
-            to={item.to}
+            href={item.to}
             end={item.to === "/"}
             className="flex items-center gap-3 px-3 py-2.5 text-sm text-sidebar-foreground rounded-sm hover:bg-sidebar-accent transition-colors group"
             activeClassName="!bg-secondary !text-primary border-l-2 border-primary"
           >
             <item.icon className="h-4 w-4" />
             <span>{item.label}</span>
-          </NavLink>
+          </ActiveLink>
         ))}
 
         {showNewEntry && (
           <div className="pt-4">
-            <NavLink to="/create">
+            <ActiveLink href="/create">
               <Button className="w-full bg-gradient-signal hover:opacity-90 text-primary-foreground font-bold uppercase tracking-[0.15em] text-xs h-10 rounded-sm">
                 <Plus className="h-4 w-4 mr-1" /> New_Entry
               </Button>
-            </NavLink>
+            </ActiveLink>
           </div>
         )}
       </nav>
 
       <div className="p-3 border-t border-border/60 space-y-1">
         {footerItems.map((item) => (
-          <NavLink
+          <ActiveLink
             key={item.label}
-            to={item.to}
+            href={item.to}
             className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-sm transition-colors"
           >
             <item.icon className="h-4 w-4" />
             <span>{item.label}</span>
-          </NavLink>
+          </ActiveLink>
         ))}
       </div>
     </aside>
