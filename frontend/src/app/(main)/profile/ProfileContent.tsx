@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { SectionLabel } from "@/components/forge/SectionLabel";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,22 +64,22 @@ export function ProfileContent({
     <div className="p-8 lg:p-10 space-y-10 animate-fade-up">
       {/* Header */}
       <section className="grid md:grid-cols-[120px,1fr,auto] gap-6 items-start">
-        <div className="h-28 w-28 panel overflow-hidden">
+        <div className="h-28 w-28 panel overflow-hidden relative">
           {currentProfile?.avatar ? (
-            <img
+            <Image
               src={currentProfile.avatar}
               alt="Avatar"
-              className="w-full h-full object-cover"
-              width={512}
-              height={512}
+              fill
+              className="object-cover"
+              sizes="112px"
             />
           ) : (
-            <img
+            <Image
               src="/images/forge-avatar.jpg"
               alt="Node avatar"
-              className="w-full h-full object-cover"
-              width={512}
-              height={512}
+              fill
+              className="object-cover"
+              sizes="112px"
             />
           )}
         </div>

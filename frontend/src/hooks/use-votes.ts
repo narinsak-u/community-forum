@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { queryKeys } from "./use-query-keys";
 
 interface VoteData {
   value: number;
@@ -20,8 +21,8 @@ export function useVoteThread(slug: string) {
     mutationFn: (data: VoteData) =>
       api.post<VoteResponse>("/threads/" + slug + "/vote", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["thread", slug] });
-      queryClient.invalidateQueries({ queryKey: ["threads"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.threads.detail(slug) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.threads.all });
     },
   });
 }
@@ -33,7 +34,7 @@ export function useVoteComment(threadSlug: string) {
     mutationFn: ({ commentId, value }: { commentId: number; value: number }) =>
       api.post<VoteResponse>("/comments/" + commentId + "/vote", { value }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["thread", threadSlug] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.threads.detail(threadSlug) });
     },
   });
 }

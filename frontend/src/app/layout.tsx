@@ -16,12 +16,12 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Midnight Forge — Terminal Forum for Architects & Engineers",
+  title: "Midnight Forge - Terminal Forum for Architects & Engineers",
   description:
     "Midnight Forge is a terminal-style technical forum for architects, engineers, and protocol designers. Discuss systems, share docs, build the network.",
   authors: [{ name: "Midnight Forge" }],
   openGraph: {
-    title: "Midnight Forge — Terminal Forum",
+    title: "Midnight Forge - Terminal Forum",
     description: "Terminal-style technical forum for architects and engineers.",
     type: "website",
   },

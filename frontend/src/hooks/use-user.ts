@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { UserProfile, ThreadsResponse } from "@/lib/mock-data";
+import { queryKeys } from "./use-query-keys";
 
 interface UserResponse {
   user: UserProfile;
@@ -8,7 +9,7 @@ interface UserResponse {
 
 export function useUserProfile(username: string) {
   return useQuery({
-    queryKey: ["user", username],
+    queryKey: queryKeys.users.profile(username),
     queryFn: () => api.get<UserResponse>("/users/" + username),
     staleTime: 5 * 60 * 1000,
   });
@@ -27,14 +28,14 @@ export function useUpdateProfile(username: string) {
     mutationFn: (data: UpdateProfileData) =>
       api.patch<UserResponse>("/users/" + username, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["user", username] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.profile(username) });
     },
   });
 }
 
 export function useUserThreads(username: string, page = 1, pageSize = 5) {
   return useQuery({
-    queryKey: ["user-threads", username, page, pageSize],
+    queryKey: queryKeys.users.threads(username),
     queryFn: () =>
       api.get<ThreadsResponse>(
         `/users/${username}/threads?page=${page}&pageSize=${pageSize}`

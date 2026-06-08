@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, startTransition } from "react";
 import { ActiveLink } from "@/components/ActiveLink";
 import { Badge } from "@/components/ui/badge";
@@ -53,12 +54,12 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
           <ActiveLink href={"/thread/" + featuredSlug} className="lg:col-span-2 group">
             <article className="panel relative overflow-hidden h-full scanline">
               <div className="relative aspect-[2/1] overflow-hidden bg-terminal">
-                <img
+                <Image
                   src="/images/forge-hero.jpg"
                   alt={featuredThread?.title || "Featured thread"}
-                  className="w-full h-full object-cover opacity-70 group-hover:opacity-90 transition-opacity"
-                  width={1280}
-                  height={640}
+                  fill
+                  className="object-cover opacity-70 group-hover:opacity-90 transition-opacity"
+                  sizes="(max-width: 1200px) 100vw, 800px"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
               </div>
@@ -186,7 +187,7 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
                     <div className="flex items-center gap-4 text-muted-foreground">
                       <div className="hidden md:flex -space-x-2">
                         {[...Array(3)].map((_, j) => (
-                          <div key={j} className="h-7 w-7 rounded-full bg-secondary border-2 border-card" />
+                          <div key={`avatar-${j}`} className="h-7 w-7 rounded-full bg-secondary border-2 border-card" />
                         ))}
                       </div>
                       <div className="flex items-center gap-1.5">

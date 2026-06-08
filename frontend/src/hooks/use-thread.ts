@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { ThreadDetail } from "@/lib/mock-data";
+import { queryKeys } from "./use-query-keys";
 
 export function useThread(slug: string) {
   return useQuery({
-    queryKey: ["thread", slug],
+    queryKey: queryKeys.threads.detail(slug),
     queryFn: () => api.get<ThreadDetail>("/threads/" + slug),
     staleTime: 60 * 1000,
   });
@@ -31,7 +32,7 @@ export function useCreateThread() {
     mutationFn: (data: CreateThreadData) =>
       api.post<ThreadDetail>("/threads", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["threads"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.threads.all });
     },
   });
 }
@@ -43,8 +44,8 @@ export function useUpdateThread(slug: string) {
     mutationFn: (data: UpdateThreadData) =>
       api.patch<ThreadDetail>("/threads/" + slug, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["thread", slug] });
-      queryClient.invalidateQueries({ queryKey: ["threads"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.threads.detail(slug) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.threads.all });
     },
   });
 }
@@ -55,7 +56,7 @@ export function useDeleteThread(slug: string) {
   return useMutation({
     mutationFn: () => api.delete<{ message: string }>("/threads/" + slug),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["threads"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.threads.all });
     },
   });
 }

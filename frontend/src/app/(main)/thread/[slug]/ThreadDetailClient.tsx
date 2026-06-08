@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionLabel } from "@/components/forge/SectionLabel";
 import { Button } from "@/components/ui/button";
@@ -64,12 +65,13 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
       />
 
       <div className="panel scanline relative overflow-hidden aspect-[2/1]">
-        <img
+        <Image
           src="/images/forge-hero.jpg"
           alt="System wireframe"
-          className="w-full h-full object-cover"
-          width={1280}
-          height={640}
+          fill
+          className="object-cover"
+          sizes="(max-width: 1200px) 100vw, 1200px"
+          priority
         />
       </div>
 
@@ -77,7 +79,7 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
         <article className="space-y-6 text-sm">
           {currentThread?.content ? (
             currentThread.content.split("\n\n").map((para: string, i: number) => (
-              <p key={i} className="text-foreground/85 leading-relaxed">{para}</p>
+              <p key={`p-${i}-${para.slice(0, 20)}`} className="text-foreground/85 leading-relaxed">{para}</p>
             ))
           ) : (
             <p className="text-foreground/85 leading-relaxed">Loading content...</p>
@@ -90,6 +92,7 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
           <div className="flex items-center justify-between pt-4 border-t border-border/60">
             <div className="flex items-center gap-3">
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 className="border-border hover:border-primary hover:text-primary rounded-sm"
@@ -98,6 +101,7 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
                 <ThumbsUp className="h-3.5 w-3.5 mr-2" /> {currentThread?.upvotes || 0}
               </Button>
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 className="border-border rounded-sm"
@@ -107,9 +111,9 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
               </Button>
             </div>
             <div className="flex items-center gap-4 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              <button className="flex items-center gap-1.5 hover:text-primary"><Share2 className="h-3.5 w-3.5" /> Share</button>
-              <button className="flex items-center gap-1.5 hover:text-primary"><Bookmark className="h-3.5 w-3.5" /> Bookmark</button>
-              <button className="flex items-center gap-1.5 hover:text-primary"><Flag className="h-3.5 w-3.5" /> Report</button>
+              <button type="button" className="flex items-center gap-1.5 hover:text-primary"><Share2 className="h-3.5 w-3.5" /> Share</button>
+              <button type="button" className="flex items-center gap-1.5 hover:text-primary"><Bookmark className="h-3.5 w-3.5" /> Bookmark</button>
+              <button type="button" className="flex items-center gap-1.5 hover:text-primary"><Flag className="h-3.5 w-3.5" /> Report</button>
             </div>
           </div>
         </article>
@@ -129,7 +133,7 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
             <SectionLabel>Participants</SectionLabel>
             <div className="flex flex-wrap gap-1">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/40 to-primary-deep/30 border border-border" />
+                <div key={`participant-${i}`} className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/40 to-primary-deep/30 border border-border" />
               ))}
               <div className="h-8 w-8 rounded-full bg-secondary border border-border grid place-items-center text-[10px] font-mono text-primary">
                 +{currentThread?.replies_count || 0}

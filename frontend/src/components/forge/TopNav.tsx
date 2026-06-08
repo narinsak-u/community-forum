@@ -64,7 +64,7 @@ export const TopNav = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="h-9 w-9 grid place-items-center text-muted-foreground hover:text-primary transition-colors relative">
+          <button type="button" className="h-9 w-9 grid place-items-center text-muted-foreground hover:text-primary transition-colors relative">
             <Bell className="h-4 w-4" />
             <span className="absolute top-2 right-2 h-1.5 w-1.5 bg-primary rounded-full animate-pulse-signal" />
           </button>
@@ -82,11 +82,20 @@ export const TopNav = () => {
           </ActiveLink>
 
           <button
+            type="button"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="h-9 w-9 grid place-items-center text-muted-foreground hover:text-primary transition-colors"
-            aria-label={mounted ? (theme === "dark" ? "Switch to light mode" : "Switch to dark mode") : undefined}
+            aria-label="Toggle theme"
           >
-            {mounted ? (theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />) : <Sun className="h-4 w-4" />}
+            {mounted ? (
+              theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )
+            ) : (
+              <div className="h-4 w-4" />
+            )}
           </button>
         </div>
       </div>

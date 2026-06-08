@@ -95,16 +95,18 @@ export default function CreateEntryInner() {
       </header>
 
       <section className="space-y-3">
-        <label className="terminal-label">TOPIC_IDENTITY</label>
+        <label htmlFor="title-input" className="terminal-label">TOPIC_IDENTITY</label>
         <Input
+          id="title-input"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="ENTER_UNIQUE_STRING_IDENTIFIER..."
           className="h-14 bg-secondary/60 border-border text-base font-mono uppercase tracking-wider placeholder:text-muted-foreground/40 focus-visible:ring-primary/40 rounded-sm"
         />
         <div className="flex items-center gap-2">
-          <label className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">TAGS (comma-separated):</label>
+          <label htmlFor="tags-input" className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">TAGS (comma-separated):</label>
           <Input
+            id="tags-input"
             value={tagsInput}
             onChange={(e) => setTagsInput(e.target.value)}
             placeholder="technical, announcement, design"
@@ -117,7 +119,7 @@ export default function CreateEntryInner() {
         <div className="flex items-center justify-between border-b border-border/60 pb-3">
           <div className="flex items-center gap-1 text-muted-foreground">
             {[Bold, Italic, Code2, List, Link2, ImageIcon].map((Icon, i) => (
-              <button key={i} className="h-8 w-8 grid place-items-center hover:text-primary hover:bg-secondary rounded-sm transition-colors">
+              <button key={i} type="button" className="h-8 w-8 grid place-items-center hover:text-primary hover:bg-secondary rounded-sm transition-colors">
                 <Icon className="h-4 w-4" />
               </button>
             ))}
@@ -128,8 +130,8 @@ export default function CreateEntryInner() {
               DRAFT_LIVE
             </span>
             <div className="flex border border-border rounded-sm overflow-hidden text-[10px] uppercase tracking-[0.18em]">
-              <button className="px-3 py-1.5 bg-primary text-primary-foreground font-bold">SPLIT</button>
-              <button className="px-3 py-1.5 text-muted-foreground hover:bg-secondary">FULL</button>
+              <button type="button" className="px-3 py-1.5 bg-primary text-primary-foreground font-bold">SPLIT</button>
+              <button type="button" className="px-3 py-1.5 text-muted-foreground hover:bg-secondary">FULL</button>
             </div>
           </div>
         </div>

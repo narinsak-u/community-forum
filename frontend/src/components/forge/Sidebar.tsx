@@ -72,6 +72,7 @@ export const Sidebar = ({ showNewEntry = false }: { showNewEntry?: boolean }) =>
           </span>
         )}*/}
         <button
+          type="button"
           onClick={toggle}
           className={cn(
             "h-7 w-7 grid place-items-center text-muted-foreground hover:text-primary rounded-sm hover:bg-sidebar-accent transition-colors",
@@ -156,6 +157,7 @@ export const Sidebar = ({ showNewEntry = false }: { showNewEntry?: boolean }) =>
               <Tooltip delayDuration={300}>
                 <TooltipTrigger asChild>
                   <button
+                    type="button"
                     onClick={handleSignout}
                     className="flex items-center justify-center px-3 py-2 w-full text-sm text-muted-foreground hover:text-destructive rounded-sm transition-colors"
                   >
@@ -166,6 +168,7 @@ export const Sidebar = ({ showNewEntry = false }: { showNewEntry?: boolean }) =>
               </Tooltip>
             ) : (
               <button
+                type="button"
                 onClick={handleSignout}
                 className="flex items-center gap-3 px-3 py-2 w-full text-sm text-muted-foreground hover:text-destructive rounded-sm transition-colors"
               >
