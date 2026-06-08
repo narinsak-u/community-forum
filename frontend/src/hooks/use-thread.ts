@@ -6,9 +6,15 @@ import { MOCK_FEATURED } from "@/lib/mock-data";
 export function useThread(slug: string) {
   return useQuery({
     queryKey: ["thread", slug],
-    queryFn: () => api.get<ThreadDetail>("/threads/" + slug),
+    queryFn: async () => {
+      try {
+        const data = await api.get<ThreadDetail>("/threads/" + slug);
+        return data?.id ? data : MOCK_FEATURED;
+      } catch {
+        return MOCK_FEATURED;
+      }
+    },
     staleTime: 60 * 1000,
-    select: (data) => (data && data.id ? data : MOCK_FEATURED),
   });
 }
 

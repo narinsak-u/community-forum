@@ -10,9 +10,15 @@ interface UserResponse {
 export function useUserProfile(username: string) {
   return useQuery({
     queryKey: ["user", username],
-    queryFn: () => api.get<UserResponse>("/users/" + username),
+    queryFn: async () => {
+      try {
+        const data = await api.get<UserResponse>("/users/" + username);
+        return data?.user?.id ? data.user : MOCK_USER;
+      } catch {
+        return MOCK_USER;
+      }
+    },
     staleTime: 5 * 60 * 1000,
-    select: (data) => data?.user?.id ? data.user : MOCK_USER,
   });
 }
 
