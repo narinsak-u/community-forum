@@ -347,6 +347,7 @@ const ThreadDetailClient = ({
                     <Button
                       size="sm"
                       onClick={() => {
+                        if (!replyContent.trim()) return;
                         if (!requireAuth({ toast: true, description: "Authenticate to transmit a reply." })) return;
                         createComment.mutate(
                           { content: replyContent, parentId: replyTarget.id },
@@ -453,10 +454,11 @@ const ThreadDetailClient = ({
                          </Button>
                          <Button
                            size="sm"
-                           onClick={() => {
-                             if (!requireAuth({ toast: true, description: "Authenticate to transmit a reply." })) return;
-                             createComment.mutate(
-                               { content: replyContent, parentId: replyTarget.id },
+                            onClick={() => {
+                              if (!replyContent.trim()) return;
+                              if (!requireAuth({ toast: true, description: "Authenticate to transmit a reply." })) return;
+                              createComment.mutate(
+                                { content: replyContent, parentId: replyTarget.id },
                                {
                                  onSuccess: () => {
                                    setReplyContent("");
