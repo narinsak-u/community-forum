@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 import { useUpdateProfile } from "@/hooks/use-user";
 
 const Settings = () => {
@@ -22,6 +23,11 @@ const Settings = () => {
   const [direct, setDirect] = useState(true);
   const [digest, setDigest] = useState(false);
   const [accent, setAccent] = useState(0);
+  const { requireAuth } = useRequireAuth();
+
+  useEffect(() => {
+    requireAuth({ redirect: "/settings" });
+  }, [requireAuth]);
 
   const user = useAuthStore((s) => s.user);
   const updateProfile = useUpdateProfile(user?.username || "");

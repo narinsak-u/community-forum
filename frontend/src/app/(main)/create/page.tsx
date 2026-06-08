@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SectionLabel } from "@/components/forge/SectionLabel";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Bold, Italic, Code2, List, Link2, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 import { useCreateThread } from "@/hooks/use-thread";
 
 const CreateEntry = () => {
@@ -15,6 +16,11 @@ const CreateEntry = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tagsInput, setTagsInput] = useState("");
+  const { requireAuth } = useRequireAuth();
+
+  useEffect(() => {
+    requireAuth({ redirect: "/create" });
+  }, [requireAuth]);
 
   const createThread = useCreateThread();
 
