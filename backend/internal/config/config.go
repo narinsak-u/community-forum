@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
@@ -22,6 +23,8 @@ type Config struct {
 	DBSSLMode   string
 	Port        string
 	CORSOrigins string
+	JWTSecret   string
+	JWTExpiry   time.Duration
 }
 
 func Load() *Config {
@@ -38,6 +41,8 @@ func Load() *Config {
 		DBSSLMode:   getEnv("DB_SSLMODE", "disable"),
 		Port:        getEnv("PORT", "8080"),
 		CORSOrigins: getEnv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8080,http://127.0.0.1:8080"),
+		JWTSecret:   getEnv("JWT_SECRET", "midnight-forge-dev-secret-change-in-production"),
+		JWTExpiry:   72 * time.Hour,
 	}
 }
 
@@ -59,7 +64,6 @@ func ConnectDB(cfg *Config) *gorm.DB {
 func MigrateDB(db *gorm.DB) {
 	if err := db.AutoMigrate(
 		&models.User{},
-		&models.Session{},
 		&models.Thread{},
 		&models.Comment{},
 		&models.Tag{},

@@ -1,64 +1,115 @@
 package middleware
 
 import (
+	"strings"
+	"time"
+
+	"community-forum/backend/internal/lib"
+
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/session"
 )
 
-// SessionManager handles creating, retrieving, and saving session data.
+const jwtCookieName = "forge_token"
+
 type SessionManager struct {
-	Store *session.Store
+	Secret string
+	Expiry time.Duration
 }
 
-// NewSessionManager initializes the session manager configuration.
-func NewSessionManager() *SessionManager {
-	store := session.New(session.Config{
-		CookieHTTPOnly: true,  // Prevents JavaScript from accessing the cookie (security against XSS)
-		CookieSameSite: "Lax", // Helps prevent CSRF attacks
-		CookieSecure:   false, // Set to true in production to only allow sessions over HTTPS
+func NewSessionManager(secret string, expiry time.Duration) *SessionManager {
+	return &SessionManager{Secret: secret, Expiry: expiry}
+}
+
+func (m *SessionManager) SignToken(userID uint, role string) (string, error) {
+	return lib.SignJWT(userID, role, m.Secret, m.Expiry)
+}
+
+func (m *SessionManager) SetTokenCookie(c *fiber.Ctx, token string) {
+	c.Cookie(&fiber.Cookie{
+		Name:     jwtCookieName,
+		Value:    token,
+		HTTPOnly: true,
+		SameSite: "Lax",
+		Secure:   false,
+		Path:     "/",
 	})
-	return &SessionManager{Store: store}
 }
 
-// RequireAuth is a middleware function that stops a request if the user is not logged in.
-func (m *SessionManager) RequireAuth(c *fiber.Ctx) error {
-	// Try to get the session from the request context (via cookies)
-	sess, err := m.Store.Get(c)
+func (m *SessionManager) ClearTokenCookie(c *fiber.Ctx) {
+	c.Cookie(&fiber.Cookie{
+		Name:     jwtCookieName,
+		Value:    "",
+		HTTPOnly: true,
+		SameSite: "Lax",
+		Secure:   false,
+		Path:     "/",
+		MaxAge:   -1,
+	})
+}
 
-	// If the session doesn't exist or doesn't have a user_id, return 401 Unauthorized.
-	if err != nil || sess.Get("user_id") == nil {
+func (m *SessionManager) RequireAuth(c *fiber.Ctx) error {
+	tokenStr := m.extractToken(c)
+	if tokenStr == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Unauthorized",
 		})
 	}
 
-	// c.Next() tells Fiber to move to the next function in the chain (the actual handler).
+	claims, err := lib.VerifyJWT(tokenStr, m.Secret)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
+	}
+
+	c.Locals("user_id", claims.UserID)
+	c.Locals("user_role", claims.Role)
 	return c.Next()
 }
 
-// GetUserID is a helper to retrieve the logged-in user's ID from the session.
 func (m *SessionManager) GetUserID(c *fiber.Ctx) uint {
-	sess, err := m.Store.Get(c)
+	if id, ok := c.Locals("user_id").(uint); ok {
+		return id
+	}
+
+	// Fallback: parse from JWT cookie even if RequireAuth wasn't called
+	tokenStr := m.extractToken(c)
+	if tokenStr == "" {
+		return 0
+	}
+	claims, err := lib.VerifyJWT(tokenStr, m.Secret)
 	if err != nil {
 		return 0
 	}
-
-	// Type assertion: session data is stored as interface{}, we need to cast it back to uint.
-	if id, ok := sess.Get("user_id").(uint); ok {
-		return id
-	}
-	return 0
+	return claims.UserID
 }
 
-// GetUserRole is a helper to retrieve the logged-in user's role (e.g., 'admin', 'user').
 func (m *SessionManager) GetUserRole(c *fiber.Ctx) string {
-	sess, err := m.Store.Get(c)
+	if role, ok := c.Locals("user_role").(string); ok {
+		return role
+	}
+
+	tokenStr := m.extractToken(c)
+	if tokenStr == "" {
+		return ""
+	}
+	claims, err := lib.VerifyJWT(tokenStr, m.Secret)
 	if err != nil {
 		return ""
 	}
+	return claims.Role
+}
 
-	if role, ok := sess.Get("user_role").(string); ok {
-		return role
+func (m *SessionManager) extractToken(c *fiber.Ctx) string {
+	cookie := c.Cookies(jwtCookieName)
+	if cookie != "" {
+		return cookie
 	}
+
+	auth := c.Get("Authorization")
+	if strings.HasPrefix(auth, "Bearer ") {
+		return strings.TrimPrefix(auth, "Bearer ")
+	}
+
 	return ""
 }

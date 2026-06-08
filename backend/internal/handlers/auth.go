@@ -7,13 +7,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// AuthHandler manages authentication-related requests like login, signup, and logout.
 type AuthHandler struct {
 	AuthService    ports.AuthService
 	SessionManager *middleware.SessionManager
 }
 
-// NewAuthHandler is a constructor that "injects" the necessary services into the handler.
 func NewAuthHandler(authService ports.AuthService, sessionManager *middleware.SessionManager) *AuthHandler {
 	return &AuthHandler{
 		AuthService:    authService,
@@ -21,7 +19,6 @@ func NewAuthHandler(authService ports.AuthService, sessionManager *middleware.Se
 	}
 }
 
-// Request structs define the expected JSON structure from the client.
 type SignupRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
@@ -33,7 +30,6 @@ type SigninRequest struct {
 	Password string `json:"password"`
 }
 
-// SignupHandler handles POST requests to create a new user account.
 func (h *AuthHandler) SignupHandler(c *fiber.Ctx) error {
 	var req SignupRequest
 
@@ -54,7 +50,6 @@ func (h *AuthHandler) SignupHandler(c *fiber.Ctx) error {
 	})
 }
 
-// SigninHandler handles POST requests to log a user in.
 func (h *AuthHandler) SigninHandler(c *fiber.Ctx) error {
 	var req SigninRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -70,21 +65,14 @@ func (h *AuthHandler) SigninHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	sess, err := h.SessionManager.Store.Get(c)
+	token, err := h.SessionManager.SignToken(user.ID, string(user.Role))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to create session",
+			"error": "Failed to generate token",
 		})
 	}
 
-	sess.Set("user_id", user.ID)
-	sess.Set("user_role", string(user.Role))
-
-	if err := sess.Save(); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to save session",
-		})
-	}
+	h.SessionManager.SetTokenCookie(c, token)
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"id":         user.ID,
@@ -98,27 +86,13 @@ func (h *AuthHandler) SigninHandler(c *fiber.Ctx) error {
 	})
 }
 
-// SignoutHandler handles POST requests to log the user out.
 func (h *AuthHandler) SignoutHandler(c *fiber.Ctx) error {
-	sess, err := h.SessionManager.Store.Get(c)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to get session",
-		})
-	}
-
-	if err := sess.Destroy(); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to destroy session",
-		})
-	}
-
+	h.SessionManager.ClearTokenCookie(c)
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Logged out successfully",
 	})
 }
 
-// MeHandler returns the currently logged-in user's profile.
 func (h *AuthHandler) MeHandler(c *fiber.Ctx) error {
 	userID := h.SessionManager.GetUserID(c)
 	if userID == 0 {

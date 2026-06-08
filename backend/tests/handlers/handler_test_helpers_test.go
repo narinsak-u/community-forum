@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"context"
 	"errors"
+	"time"
 
 	"community-forum/backend/internal/domain"
 	"community-forum/backend/internal/middleware"
@@ -12,7 +13,7 @@ import (
 var errMock = errors.New("mock error")
 
 func setupTestSessionManager() *middleware.SessionManager {
-	return middleware.NewSessionManager()
+	return middleware.NewSessionManager("test-secret", 72*time.Hour)
 }
 
 type mockAuthService struct {

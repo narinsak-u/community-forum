@@ -36,8 +36,8 @@ func main() {
 		},
 	)
 
-	// Step 6: Initialize the session store for authentication.
-	sessionManager := middleware.NewSessionManager()
+	// Step 6: Initialize JWT-based authentication.
+	sessionManager := middleware.NewSessionManager(cfg.JWTSecret, cfg.JWTExpiry)
 
 	// Step 7: Add global middlewares.
 	// recover: Recovers from panics to prevent the server from crashing.
