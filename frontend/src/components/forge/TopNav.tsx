@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ActiveLink } from "@/components/ActiveLink";
 import { Bell, Settings, Search, User, Sun, Moon } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,10 @@ const navItems = [
 ];
 
 export const TopNav = () => {
+  const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
+
+  useEffect(() => setMounted(true), []);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl">
@@ -80,15 +84,9 @@ export const TopNav = () => {
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="h-9 w-9 grid place-items-center text-muted-foreground hover:text-primary transition-colors"
-            aria-label={
-              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
-            }
+            aria-label={mounted ? (theme === "dark" ? "Switch to light mode" : "Switch to dark mode") : undefined}
           >
-            {theme === "dark" ? (
-              <Sun className="h-4 w-4" />
-            ) : (
-              <Moon className="h-4 w-4" />
-            )}
+            {mounted ? (theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />) : <Sun className="h-4 w-4" />}
           </button>
         </div>
       </div>

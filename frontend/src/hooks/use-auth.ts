@@ -37,16 +37,10 @@ export function useSignout() {
 }
 
 export function useMe() {
-  const { setUser } = useAuthStore();
-
   return useQuery({
     queryKey: ["me"],
     queryFn: () => api.get<User>("/auth/me"),
     retry: false,
     staleTime: 5 * 60 * 1000,
-    select: (user) => {
-      setUser(user);
-      return user;
-    },
   });
 }
