@@ -38,6 +38,7 @@ const ThreadDetailClient = ({
     id: number;
     author: string;
   } | null>(null);
+  const [userVotes, setUserVotes] = useState<Record<number, number>>({});
   const user = useAuthStore((s) => s.user);
   const { requireAuth } = useRequireAuth();
 
@@ -78,6 +79,7 @@ const ThreadDetailClient = ({
       })
     )
       return;
+    setUserVotes((prev) => ({ ...prev, [commentId]: value }));
     voteComment.mutate(
       { commentId, value },
       {
@@ -347,16 +349,18 @@ const ThreadDetailClient = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-border hover:border-primary hover:text-primary rounded-sm h-7 px-2 text-[10px]"
+                    className={`rounded-sm h-7 px-2 text-[10px] ${userVotes[comment.id] === 1 ? "border-primary text-primary" : "border-border hover:border-primary hover:text-primary"}`}
                     onClick={() => handleVoteComment(comment.id, 1)}
+                    disabled={userVotes[comment.id] === 1}
                   >
                     <ThumbsUp className="h-3 w-3 mr-1" /> {comment.upvotes}
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-border hover:border-primary hover:text-primary rounded-sm h-7 px-2 text-[10px]"
+                    className={`rounded-sm h-7 px-2 text-[10px] ${userVotes[comment.id] === -1 ? "border-primary text-primary" : "border-border hover:border-primary hover:text-primary"}`}
                     onClick={() => handleVoteComment(comment.id, -1)}
+                    disabled={userVotes[comment.id] === -1}
                   >
                     <ThumbsDown className="h-3 w-3" />
                   </Button>
@@ -480,16 +484,18 @@ const ThreadDetailClient = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-border hover:border-primary hover:text-primary rounded-sm h-6 px-1.5 text-[9px]"
+                      className={`rounded-sm h-6 px-1.5 text-[9px] ${userVotes[reply.id] === 1 ? "border-primary text-primary" : "border-border hover:border-primary hover:text-primary"}`}
                       onClick={() => handleVoteComment(reply.id, 1)}
+                      disabled={userVotes[reply.id] === 1}
                     >
                       <ThumbsUp className="h-2.5 w-2.5 mr-0.5" /> {reply.upvotes}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-border hover:border-primary hover:text-primary rounded-sm h-6 px-1.5 text-[9px]"
+                      className={`rounded-sm h-6 px-1.5 text-[9px] ${userVotes[reply.id] === -1 ? "border-primary text-primary" : "border-border hover:border-primary hover:text-primary"}`}
                       onClick={() => handleVoteComment(reply.id, -1)}
+                      disabled={userVotes[reply.id] === -1}
                     >
                       <ThumbsDown className="h-2.5 w-2.5" />
                     </Button>
