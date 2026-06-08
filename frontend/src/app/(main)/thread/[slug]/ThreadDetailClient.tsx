@@ -33,6 +33,7 @@ const ThreadDetailClient = ({
   initialThread,
 }: ThreadDetailClientProps) => {
   const [replyContent, setReplyContent] = useState("");
+  const [replyTarget, setReplyTarget] = useState<{ id: number; author: string } | null>(null);
   const user = useAuthStore((s) => s.user);
   const { requireAuth } = useRequireAuth();
 
@@ -281,7 +282,7 @@ const ThreadDetailClient = ({
         </div>
       </div>
 
-      {/* Replies */}
+      {/* Commments */}
       <div className="space-y-5">
         {currentThread?.comments?.length ? (
           currentThread.comments.map((comment) => (
@@ -314,8 +315,70 @@ const ThreadDetailClient = ({
               <p className="text-xs text-foreground/85 leading-relaxed">
                 {comment.content}
               </p>
+              {replyTarget?.id === comment.id && user && (
+                <div className="ml-6 mt-4 pl-5 border-l border-primary/30 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-7 w-7 rounded-sm bg-gradient-signal grid place-items-center text-[9px] font-bold text-primary-foreground">
+                      {user.username.replace("@", "").slice(0, 2).toUpperCase()}
+                    </div>
+                    <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      REPLYING AS {user.username.toUpperCase()}
+                    </span>
+                  </div>
+                  <Textarea
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    placeholder={`@${replyTarget.author.replace("@", "")} `}
+                    className="bg-terminal border-border min-h-[80px] font-mono text-sm focus-visible:ring-primary/40"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setReplyTarget(null)}
+                      className="text-muted-foreground uppercase text-[10px]"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (!requireAuth({ toast: true, description: "Authenticate to transmit a reply." })) return;
+                        createComment.mutate(
+                          { content: replyContent, parentId: replyTarget.id },
+                          {
+                            onSuccess: () => {
+                              setReplyContent("");
+                              setReplyTarget(null);
+                              toast.success("REPLY_TRANSMITTED");
+                            },
+                            onError: (err) =>
+                              toast.error("TRANSMIT_FAILED", { description: err.message }),
+                          },
+                        );
+                      }}
+                      disabled={createComment.isPending || !replyContent.trim()}
+                      className="bg-gradient-signal hover:opacity-90 text-primary-foreground font-bold uppercase tracking-[0.18em] text-[10px] rounded-sm"
+                    >
+                      {createComment.isPending ? "TRANSMITTING..." : "TRANSMIT"}
+                    </Button>
+                  </div>
+                </div>
+              )}
               <div className="flex gap-4 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                <button className="hover:text-primary">REPLY</button>
+                <button
+                  className="hover:text-primary"
+                  onClick={() => {
+                    if (!requireAuth({ toast: true, description: "Authenticate to reply." })) return;
+                    setReplyTarget({
+                      id: comment.id,
+                      author: comment.author?.username || "@unknown",
+                    });
+                    setReplyContent(`@${(comment.author?.username || "@unknown").replace("@", "")} `);
+                  }}
+                >
+                  REPLY
+                </button>
                 {/*<button className="hover:text-primary">SHARE</button>*/}
               </div>
 
@@ -357,7 +420,7 @@ const ThreadDetailClient = ({
         )}
       </div>
 
-      {/* Reply box */}
+      {/* Comment box */}
       {user && (
         <div className="panel p-5 space-y-3">
           <div className="flex items-center justify-between">
