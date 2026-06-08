@@ -6,8 +6,11 @@ package main
 import (
 	"log"
 
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
@@ -89,9 +92,17 @@ func main() {
 	tagHandler := handlers.NewTagHandler(tagService, sessionManager)
 
 	// Step 11: Register API routes.
-	// Auth routes
-	api.Post("/auth/signup", authHandler.SignupHandler)
-	api.Post("/auth/signin", authHandler.SigninHandler)
+	// Auth routes — rate limited to prevent brute-force attacks
+	authLimiter := limiter.New(limiter.Config{
+		Max:        10,
+		Expiration: 1 * time.Minute,
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return c.IP()
+		},
+		SkipSuccessfulRequests: true,
+	})
+	api.Post("/auth/signup", authLimiter, authHandler.SignupHandler)
+	api.Post("/auth/signin", authLimiter, authHandler.SigninHandler)
 	api.Post("/auth/signout", sessionManager.RequireAuth, authHandler.SignoutHandler)
 	api.Get("/auth/me", sessionManager.RequireAuth, authHandler.MeHandler)
 

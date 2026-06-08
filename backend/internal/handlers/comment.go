@@ -1,14 +1,16 @@
 package handlers
 
 import (
+	"errors"
+
 	"community-forum/backend/internal/domain"
 	"community-forum/backend/internal/middleware"
 	"community-forum/backend/internal/ports"
+	"community-forum/backend/internal/usecase"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-// CommentHandler manages creation and deletion of comments.
 type CommentHandler struct {
 	CommentService ports.CommentService
 	SessionManager *middleware.SessionManager
@@ -21,14 +23,11 @@ func NewCommentHandler(commentService ports.CommentService, sessionManager *midd
 	}
 }
 
-// CreateCommentRequest defines the input for a new comment or reply.
 type CreateCommentRequest struct {
 	Content  string `json:"content"`
-	// ParentID is optional. If provided, the comment is a reply to another comment.
 	ParentID *uint  `json:"parentId"`
 }
 
-// CreateCommentHandler handles POST /api/threads/:slug/comments
 func (h *CommentHandler) CreateCommentHandler(c *fiber.Ctx) error {
 	var req CreateCommentRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -42,17 +41,19 @@ func (h *CommentHandler) CreateCommentHandler(c *fiber.Ctx) error {
 
 	comment, err := h.CommentService.Create(c.Context(), slug, req.Content, req.ParentID, userID)
 	if err != nil {
-		if err.Error() == "Thread not found" {
+		if errors.Is(err, usecase.ErrThreadNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"error": "Thread not found",
 			})
 		}
-		if err.Error() == "Content must be between 2 and 10000 characters" ||
-			err.Error() == "Parent comment not found" ||
-			err.Error() == "Parent comment does not belong to this thread" ||
-			err.Error() == "Replies can only be 1 level deep" {
+		if errors.Is(err, domain.ErrInvalidInput) {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": err.Error(),
+			})
+		}
+		if errors.Is(err, usecase.ErrCommentNotFound) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Parent comment not found",
 			})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -66,9 +67,7 @@ func (h *CommentHandler) CreateCommentHandler(c *fiber.Ctx) error {
 	})
 }
 
-// DeleteCommentHandler handles DELETE /api/comments/:id
 func (h *CommentHandler) DeleteCommentHandler(c *fiber.Ctx) error {
-	// Parse the comment ID from the URL.
 	commentID, err := c.ParamsInt("id")
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -81,14 +80,14 @@ func (h *CommentHandler) DeleteCommentHandler(c *fiber.Ctx) error {
 
 	err = h.CommentService.Delete(c.Context(), uint(commentID), userID, userRole)
 	if err != nil {
-		if err.Error() == "Comment not found" {
+		if errors.Is(err, usecase.ErrCommentNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"error": "Comment not found",
 			})
 		}
-		if err.Error() == "You do not have permission to delete this comment" {
+		if errors.Is(err, usecase.ErrCommentForbidden) {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"error": err.Error(),
+				"error": "You do not have permission to delete this comment",
 			})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

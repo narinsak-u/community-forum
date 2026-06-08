@@ -11,7 +11,7 @@ import (
 
 // Regex patterns used to clean up strings for URLs.
 var nonAlphaNumeric = regexp.MustCompile(`[^a-z0-9]+`) // Matches anything that is NOT a lowercase letter or number
-var multiHyphen = regexp.MustCompile(`-{2,}`)         // Matches two or more hyphens in a row
+var multiHyphen = regexp.MustCompile(`-{2,}`)          // Matches two or more hyphens in a row
 
 // GenerateSlug converts a title (like "Hello World!") into a URL-friendly slug (like "hello-world").
 func GenerateSlug(title string) string {
@@ -41,12 +41,12 @@ func GenerateUniqueSlug(title string, db *gorm.DB, tableName string, column stri
 		if err := db.Table(tableName).Where(column+" = ?", slug).Count(&count).Error; err != nil {
 			return "", fmt.Errorf("failed to check slug uniqueness: %w", err)
 		}
-		
+
 		// If count is 0, the slug is available!
 		if count == 0 {
 			return slug, nil
 		}
-		
+
 		// If taken, try appending the counter
 		slug = fmt.Sprintf("%s-%d", base, i)
 	}

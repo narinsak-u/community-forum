@@ -1,5 +1,5 @@
 // Package usecase implements the core business logic of the application.
-// In Hexagonal Architecture, this layer (also called the Service layer) 
+// In Hexagonal Architecture, this layer (also called the Service layer)
 // implements the Inbound Ports and coordinates interactions with Outbound Ports.
 package usecase
 
@@ -31,7 +31,7 @@ var (
 // AuthService implements the ports.AuthService interface.
 type AuthService struct {
 	// Dependency Injection: AuthService depends on UserRepository to persist data.
-	// It uses the interface type (ports.UserRepository) to remain decoupled 
+	// It uses the interface type (ports.UserRepository) to remain decoupled
 	// from the actual database implementation.
 	repo ports.UserRepository
 }

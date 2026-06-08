@@ -6,7 +6,7 @@ import (
 	"context"
 )
 
-// AuthService is an "Inbound Port" that defines the contract for authentication 
+// AuthService is an "Inbound Port" that defines the contract for authentication
 // and authorization business logic.
 type AuthService interface {
 	Signup(ctx context.Context, username, email, password string) error

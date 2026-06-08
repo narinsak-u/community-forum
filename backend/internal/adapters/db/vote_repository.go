@@ -6,6 +6,7 @@ import (
 	"community-forum/backend/internal/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type GORMVoteRepository struct {
@@ -21,19 +22,14 @@ func (r *GORMVoteRepository) VoteThread(ctx context.Context, threadID uint, user
 		return r.db.WithContext(ctx).Where("user_id = ? AND thread_id = ?", userID, threadID).Delete(&models.Vote{}).Error
 	}
 
-	var existingVote models.Vote
-	result := r.db.WithContext(ctx).Where("user_id = ? AND thread_id = ?", userID, threadID).First(&existingVote)
-
-	if result.RowsAffected > 0 {
-		return r.db.WithContext(ctx).Model(&existingVote).Update("value", value).Error
-	}
-
-	vote := models.Vote{
+	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}, {Name: "thread_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"value"}),
+	}).Create(&models.Vote{
 		UserID:   userID,
 		ThreadID: &threadID,
 		Value:    value,
-	}
-	return r.db.WithContext(ctx).Create(&vote).Error
+	}).Error
 }
 
 func (r *GORMVoteRepository) VoteComment(ctx context.Context, commentID uint, userID uint, value int8) error {
@@ -41,19 +37,14 @@ func (r *GORMVoteRepository) VoteComment(ctx context.Context, commentID uint, us
 		return r.db.WithContext(ctx).Where("user_id = ? AND comment_id = ?", userID, commentID).Delete(&models.Vote{}).Error
 	}
 
-	var existingVote models.Vote
-	result := r.db.WithContext(ctx).Where("user_id = ? AND comment_id = ?", userID, commentID).First(&existingVote)
-
-	if result.RowsAffected > 0 {
-		return r.db.WithContext(ctx).Model(&existingVote).Update("value", value).Error
-	}
-
-	vote := models.Vote{
+	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}, {Name: "comment_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"value"}),
+	}).Create(&models.Vote{
 		UserID:    userID,
 		CommentID: &commentID,
 		Value:     value,
-	}
-	return r.db.WithContext(ctx).Create(&vote).Error
+	}).Error
 }
 
 func (r *GORMVoteRepository) GetThreadVotes(ctx context.Context, threadID uint) (int64, int64, error) {

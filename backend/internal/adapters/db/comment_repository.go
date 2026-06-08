@@ -29,7 +29,9 @@ func (r *GORMCommentRepository) Create(ctx context.Context, c *domain.Comment) e
 		return err
 	}
 
-	r.db.WithContext(ctx).Preload("Author").First(m, m.ID)
+	if err := r.db.WithContext(ctx).Preload("Author").First(m, m.ID).Error; err != nil {
+		return err
+	}
 
 	domainComment := commentFromModel(m, r.db)
 	*c = *domainComment

@@ -91,8 +91,8 @@ func TestListThreadsHandler_Pagination(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "threads"`)).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "threads"`)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "slug", "content", "status", "author_id", "view_count", "created_at"}))
+	mock.ExpectQuery(`SELECT .+ FROM "threads"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "slug", "content", "status", "author_id", "view_count", "created_at", "upvotes", "downvotes", "replies_count"}))
 
 	req := httptest.NewRequest(http.MethodGet, "/api/threads?page=2&pageSize=10", nil)
 	resp, err := app.Test(req)
@@ -113,7 +113,7 @@ func TestGetThreadHandler_Success(t *testing.T) {
 	gormDB, mock := newMockDB(t)
 	app, _ := setupThreadApp(gormDB)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "threads"`)).
+	mock.ExpectQuery(`SELECT .+ FROM "threads"`).
 		WithArgs("hello-world").
 		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "slug", "content", "status", "author_id"}).
 			AddRow(1, "Hello World", "hello-world", "Content here", "published", 1))
@@ -123,7 +123,7 @@ func TestGetThreadHandler_Success(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "threads"`)).
+	mock.ExpectQuery(`SELECT .+ FROM "threads"`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "slug", "content", "status", "author_id", "view_count"}).
 			AddRow(1, "Hello World", "hello-world", "Content here", "published", 1, 5))
 
@@ -133,10 +133,6 @@ func TestGetThreadHandler_Success(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"thread_id", "tag_id"}))
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "comments"`)).
 		WillReturnRows(sqlmock.NewRows([]string{}))
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "votes"`)).
-		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "comments"`)).
-		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
 	req := httptest.NewRequest(http.MethodGet, "/api/threads/hello-world", nil)
 	resp, err := app.Test(req)
@@ -148,7 +144,7 @@ func TestGetThreadHandler_NotFound(t *testing.T) {
 	gormDB, mock := newMockDB(t)
 	app, _ := setupThreadApp(gormDB)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "threads"`)).
+	mock.ExpectQuery(`SELECT .+ FROM "threads"`).
 		WithArgs("nonexistent").
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -188,7 +184,7 @@ func TestDeleteThreadHandler_NotFound(t *testing.T) {
 	gormDB, mock := newMockDB(t)
 	app, _ := setupThreadApp(gormDB)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "threads"`)).
+	mock.ExpectQuery(`SELECT .+ FROM "threads"`).
 		WithArgs("nonexistent").
 		WillReturnError(gorm.ErrRecordNotFound)
 
@@ -205,8 +201,8 @@ func TestListThreadsHandler_SortOldest(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "threads"`)).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "threads"`)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "slug", "content", "status", "author_id", "view_count", "created_at"}))
+	mock.ExpectQuery(`SELECT .+ FROM "threads"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "slug", "content", "status", "author_id", "view_count", "created_at", "upvotes", "downvotes", "replies_count"}))
 
 	req := httptest.NewRequest(http.MethodGet, "/api/threads?sort=oldest&page=1&pageSize=10", nil)
 	resp, err := app.Test(req)

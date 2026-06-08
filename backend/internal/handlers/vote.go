@@ -1,13 +1,16 @@
 package handlers
 
 import (
+	"errors"
+
+	"community-forum/backend/internal/domain"
 	"community-forum/backend/internal/middleware"
 	"community-forum/backend/internal/ports"
+	"community-forum/backend/internal/usecase"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-// VoteHandler handles upvoting and downvoting for threads and comments.
 type VoteHandler struct {
 	VoteService    ports.VoteService
 	SessionManager *middleware.SessionManager
@@ -20,12 +23,10 @@ func NewVoteHandler(voteService ports.VoteService, sessionManager *middleware.Se
 	}
 }
 
-// VoteRequest expects a value: 1 (upvote), -1 (downvote), or 0 (remove vote).
 type VoteRequest struct {
 	Value int8 `json:"value"`
 }
 
-// VoteThreadHandler handles POST /api/threads/:slug/vote
 func (h *VoteHandler) VoteThreadHandler(c *fiber.Ctx) error {
 	var req VoteRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -39,12 +40,12 @@ func (h *VoteHandler) VoteThreadHandler(c *fiber.Ctx) error {
 
 	upvotes, downvotes, err := h.VoteService.VoteThread(c.Context(), slug, userID, req.Value)
 	if err != nil {
-		if err.Error() == "Value must be -1, 0, or 1" {
+		if errors.Is(err, domain.ErrInvalidInput) {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": err.Error(),
 			})
 		}
-		if err.Error() == "Thread not found" {
+		if errors.Is(err, usecase.ErrThreadNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"error": "Thread not found",
 			})
@@ -61,7 +62,6 @@ func (h *VoteHandler) VoteThreadHandler(c *fiber.Ctx) error {
 	})
 }
 
-// VoteCommentHandler handles POST /api/comments/:id/vote
 func (h *VoteHandler) VoteCommentHandler(c *fiber.Ctx) error {
 	var req VoteRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -81,12 +81,12 @@ func (h *VoteHandler) VoteCommentHandler(c *fiber.Ctx) error {
 
 	upvotes, downvotes, err := h.VoteService.VoteComment(c.Context(), uint(commentID), userID, req.Value)
 	if err != nil {
-		if err.Error() == "Value must be -1, 0, or 1" {
+		if errors.Is(err, domain.ErrInvalidInput) {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": err.Error(),
 			})
 		}
-		if err.Error() == "Comment not found" {
+		if errors.Is(err, usecase.ErrCommentNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"error": "Comment not found",
 			})

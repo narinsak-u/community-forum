@@ -38,7 +38,9 @@ func (r *GORMThreadRepository) Create(ctx context.Context, t *domain.Thread, tag
 		return err
 	}
 
-	r.db.WithContext(ctx).Preload("Author").Preload("Tags").First(m, m.ID)
+	if err := r.db.WithContext(ctx).Preload("Author").Preload("Tags").First(m, m.ID).Error; err != nil {
+		return err
+	}
 
 	domainThread := threadFromModel(m, r.db)
 	*t = *domainThread
@@ -50,15 +52,20 @@ func (r *GORMThreadRepository) List(ctx context.Context, page, pageSize int, sor
 	r.db.WithContext(ctx).Model(&models.Thread{}).Where("status = ?", "published").Count(&total)
 
 	offset := (page - 1) * pageSize
-	dbQuery := r.db.WithContext(ctx).Where("status = ?", "published")
+	dbQuery := r.db.WithContext(ctx).
+		Select("threads.*, "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = 1) AS upvotes, "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = -1) AS downvotes, "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM comments WHERE comments.thread_id = threads.id AND comments.parent_id IS NULL) AS replies_count").
+		Where("threads.status = ?", "published")
 
 	switch sort {
 	case "oldest":
-		dbQuery = dbQuery.Order("created_at ASC")
+		dbQuery = dbQuery.Order("threads.created_at ASC")
 	case "votes":
-		dbQuery = dbQuery.Order("(SELECT COALESCE(SUM(CASE WHEN value = 1 THEN 1 WHEN value = -1 THEN -1 ELSE 0 END), 0) FROM votes WHERE votes.thread_id = threads.id) DESC, created_at DESC")
+		dbQuery = dbQuery.Order("(SELECT COALESCE(SUM(CASE WHEN value = 1 THEN 1 WHEN value = -1 THEN -1 ELSE 0 END), 0) FROM votes WHERE votes.thread_id = threads.id) DESC, threads.created_at DESC")
 	default:
-		dbQuery = dbQuery.Order("created_at DESC")
+		dbQuery = dbQuery.Order("threads.created_at DESC")
 	}
 
 	var mThreads []models.Thread
@@ -70,8 +77,8 @@ func (r *GORMThreadRepository) List(ctx context.Context, page, pageSize int, sor
 	}
 
 	threads := make([]domain.Thread, len(mThreads))
-	for i, m := range mThreads {
-		threads[i] = *threadFromModel(&m, r.db)
+	for i := range mThreads {
+		threads[i] = *threadFromModel(&mThreads[i], r.db)
 	}
 
 	return threads, total, nil
@@ -88,18 +95,23 @@ func (r *GORMThreadRepository) ListByUser(ctx context.Context, username string, 
 
 	offset := (page - 1) * pageSize
 	var mThreads []models.Thread
-	err := r.db.WithContext(ctx).Preload("Author").Preload("Tags").
+	err := r.db.WithContext(ctx).
+		Select("threads.*, "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = 1) AS upvotes, "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = -1) AS downvotes, "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM comments WHERE comments.thread_id = threads.id AND comments.parent_id IS NULL) AS replies_count").
 		Where("author_id = ?", user.ID).
-		Order("created_at DESC").
+		Order("threads.created_at DESC").
 		Offset(offset).Limit(pageSize).
+		Preload("Author").Preload("Tags").
 		Find(&mThreads).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
 	threads := make([]domain.Thread, len(mThreads))
-	for i, m := range mThreads {
-		threads[i] = *threadFromModel(&m, r.db)
+	for i := range mThreads {
+		threads[i] = *threadFromModel(&mThreads[i], r.db)
 	}
 
 	return threads, total, nil
@@ -110,11 +122,12 @@ func (r *GORMThreadRepository) GetFeatured(ctx context.Context) (*domain.Thread,
 	oneWeekAgo := time.Now().Add(-7 * 24 * time.Hour)
 
 	err := r.db.WithContext(ctx).
+		Select("threads.*, "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = 1) AS upvotes, "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = -1) AS downvotes, "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM comments WHERE comments.thread_id = threads.id AND comments.parent_id IS NULL) AS replies_count").
 		Where("threads.status = ? AND threads.created_at >= ?", "published", oneWeekAgo).
-		Joins("LEFT JOIN votes ON votes.thread_id = threads.id").
-		Select("threads.*, COALESCE(SUM(CASE WHEN votes.value = 1 THEN 1 WHEN votes.value = -1 THEN -1 ELSE 0 END), 0) as score").
-		Group("threads.id").
-		Order("score DESC").
+		Order("(SELECT COALESCE(SUM(CASE WHEN value = 1 THEN 1 WHEN value = -1 THEN -1 ELSE 0 END), 0) FROM votes WHERE votes.thread_id = threads.id) DESC").
 		Preload("Author").
 		Preload("Tags").
 		First(&m).Error
@@ -130,11 +143,12 @@ func (r *GORMThreadRepository) GetTrending(ctx context.Context) ([]domain.Thread
 	var mThreads []models.Thread
 
 	err := r.db.WithContext(ctx).
+		Select("threads.*, "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = 1) AS upvotes, "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = -1) AS downvotes, "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM comments WHERE comments.thread_id = threads.id AND comments.parent_id IS NULL) AS replies_count").
 		Where("status = ?", "published").
-		Joins("LEFT JOIN votes ON votes.thread_id = threads.id").
-		Select("threads.*, COALESCE(SUM(CASE WHEN votes.value = 1 THEN 1 WHEN votes.value = -1 THEN -1 ELSE 0 END), 0) as score").
-		Group("threads.id").
-		Order("score DESC").
+		Order("(SELECT COALESCE(SUM(CASE WHEN value = 1 THEN 1 WHEN value = -1 THEN -1 ELSE 0 END), 0) FROM votes WHERE votes.thread_id = threads.id) DESC").
 		Limit(3).
 		Preload("Author").
 		Preload("Tags").
@@ -145,8 +159,8 @@ func (r *GORMThreadRepository) GetTrending(ctx context.Context) ([]domain.Thread
 	}
 
 	threads := make([]domain.Thread, len(mThreads))
-	for i, m := range mThreads {
-		threads[i] = *threadFromModel(&m, r.db)
+	for i := range mThreads {
+		threads[i] = *threadFromModel(&mThreads[i], r.db)
 	}
 
 	return threads, nil
@@ -193,7 +207,9 @@ func (r *GORMThreadRepository) Update(ctx context.Context, t *domain.Thread, tag
 		return err
 	}
 
-	r.db.WithContext(ctx).Preload("Author").Preload("Tags").First(&m, m.ID)
+	if err := r.db.WithContext(ctx).Preload("Author").Preload("Tags").First(&m, m.ID).Error; err != nil {
+		return err
+	}
 	domainThread := threadFromModel(&m, r.db)
 	*t = *domainThread
 
@@ -212,7 +228,6 @@ func (r *GORMThreadRepository) GenerateUniqueSlug(ctx context.Context, title str
 	return lib.GenerateUniqueSlug(title, r.db, "threads", "slug")
 }
 
-// Helpers for mapping to domain.
 func threadFromModel(m *models.Thread, db *gorm.DB) *domain.Thread {
 	if m == nil {
 		return nil
@@ -227,9 +242,9 @@ func threadFromModel(m *models.Thread, db *gorm.DB) *domain.Thread {
 		Status:       m.Status,
 		ViewCount:    m.ViewCount,
 		AuthorID:     m.AuthorID,
-		Upvotes:      m.Upvotes(db),
-		Downvotes:    m.Downvotes(db),
-		RepliesCount: m.RepliesCount(db),
+		Upvotes:      m.Upvotes,
+		Downvotes:    m.Downvotes,
+		RepliesCount: m.RepliesCount,
 	}
 
 	if m.Author.ID != 0 {
