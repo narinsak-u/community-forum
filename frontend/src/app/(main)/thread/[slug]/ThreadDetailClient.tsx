@@ -32,6 +32,7 @@ const ThreadDetailClient = ({
   slug,
   initialThread,
 }: ThreadDetailClientProps) => {
+  const [rootReplyContent, setRootReplyContent] = useState("");
   const [replyContent, setReplyContent] = useState("");
   const [replyTarget, setReplyTarget] = useState<{ id: number; author: string } | null>(null);
   const user = useAuthStore((s) => s.user);
@@ -60,13 +61,13 @@ const ThreadDetailClient = ({
   };
 
   const handleSubmitReply = () => {
-    if (!replyContent.trim()) return;
+    if (!rootReplyContent.trim()) return;
     if (!requireAuth({ toast: true, description: "Authenticate to transmit a reply." })) return;
     createComment.mutate(
-      { content: replyContent },
+      { content: rootReplyContent },
       {
         onSuccess: () => {
-          setReplyContent("");
+          setRootReplyContent("");
           toast.success("REPLY_TRANSMITTED");
         },
         onError: (err) =>
@@ -282,7 +283,7 @@ const ThreadDetailClient = ({
         </div>
       </div>
 
-      {/* Commments */}
+      {/* Comments */}
       <div className="space-y-5">
         {currentThread?.comments?.length ? (
           currentThread.comments.map((comment) => (
@@ -335,7 +336,10 @@ const ThreadDetailClient = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setReplyTarget(null)}
+                      onClick={() => {
+                        setReplyContent("");
+                        setReplyTarget(null);
+                      }}
                       className="text-muted-foreground uppercase text-[10px]"
                     >
                       Cancel
@@ -406,7 +410,17 @@ const ThreadDetailClient = ({
                   <p className="text-sm text-foreground/85 leading-relaxed">
                     {reply.content}
                   </p>
-                  <button className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-primary">
+                  <button
+                    className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-primary"
+                    onClick={() => {
+                      if (!requireAuth({ toast: true, description: "Authenticate to reply." })) return;
+                      setReplyTarget({
+                        id: reply.id,
+                        author: reply.author?.username || "@unknown",
+                      });
+                      setReplyContent(`@${(reply.author?.username || "@unknown").replace("@", "")} `);
+                    }}
+                  >
                     REPLY
                   </button>
                 </div>
@@ -430,8 +444,8 @@ const ThreadDetailClient = ({
             </span>
           </div>
           <Textarea
-            value={replyContent}
-            onChange={(e) => setReplyContent(e.target.value)}
+            value={rootReplyContent}
+            onChange={(e) => setRootReplyContent(e.target.value)}
             placeholder="ENTER_TERMINAL_INPUT..."
             className="bg-terminal border-border min-h-[120px] font-mono text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/40"
           />
@@ -449,7 +463,7 @@ const ThreadDetailClient = ({
             </div>
             <Button
               onClick={handleSubmitReply}
-              disabled={createComment.isPending || !replyContent.trim()}
+              disabled={createComment.isPending || !rootReplyContent.trim()}
               className="bg-gradient-signal hover:opacity-90 text-primary-foreground font-bold uppercase tracking-[0.18em] text-xs rounded-sm"
             >
               {createComment.isPending ? "TRANSMITTING..." : "TRANSMIT_REPLY"}
