@@ -411,73 +411,7 @@ const ThreadDetailClient = ({
                   <p className="text-sm text-foreground/85 leading-relaxed">
                     {reply.content}
                   </p>
-                  <button
-                    className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-primary"
-                    onClick={() => {
-                      if (!requireAuth({ toast: true, description: "Authenticate to reply." })) return;
-                      setReplyTarget({
-                        id: reply.id,
-                        author: reply.author?.username || "@unknown",
-                      });
-                      setReplyContent(`@${(reply.author?.username || "@unknown").replace("@", "")} `);
-                    }}
-                  >
-                    REPLY
-                   </button>
-                   {replyTarget?.id === reply.id && user && (
-                     <div className="ml-4 mt-3 pl-4 border-l border-primary/30 space-y-3">
-                       <div className="flex items-center gap-2">
-                         <div className="h-6 w-6 rounded-sm bg-gradient-signal grid place-items-center text-[8px] font-bold text-primary-foreground">
-                           {user.username.replace("@", "").slice(0, 2).toUpperCase()}
-                         </div>
-                         <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                           REPLYING AS {user.username.toUpperCase()}
-                         </span>
-                       </div>
-                       <Textarea
-                         value={replyContent}
-                         onChange={(e) => setReplyContent(e.target.value)}
-                         placeholder={`@${replyTarget.author.replace("@", "")} `}
-                         className="bg-terminal border-border min-h-[70px] font-mono text-xs focus-visible:ring-primary/40"
-                       />
-                       <div className="flex justify-end gap-2">
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={() => {
-                             setReplyContent("");
-                             setReplyTarget(null);
-                           }}
-                           className="text-muted-foreground uppercase text-[10px]"
-                         >
-                           Cancel
-                         </Button>
-                         <Button
-                           size="sm"
-                            onClick={() => {
-                              if (!replyContent.trim()) return;
-                              if (!requireAuth({ toast: true, description: "Authenticate to transmit a reply." })) return;
-                              createComment.mutate(
-                                { content: replyContent, parentId: replyTarget.id },
-                               {
-                                 onSuccess: () => {
-                                   setReplyContent("");
-                                   setReplyTarget(null);
-                                   toast.success("REPLY_TRANSMITTED");
-                                 },
-                                 onError: (err) =>
-                                   toast.error("TRANSMIT_FAILED", { description: err.message }),
-                               },
-                             );
-                           }}
-                           disabled={createComment.isPending || !replyContent.trim()}
-                           className="bg-gradient-signal hover:opacity-90 text-primary-foreground font-bold uppercase tracking-[0.18em] text-[10px] rounded-sm"
-                         >
-                           {createComment.isPending ? "TRANSMITTING..." : "TRANSMIT"}
-                         </Button>
-                       </div>
-                     </div>
-                   )}
+
                 </div>
               ))}
             </div>
