@@ -4,71 +4,30 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/joho/godotenv"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 
 	db_adapter "community-forum/backend/internal/adapters/db"
+	"community-forum/backend/internal/config"
 	"community-forum/backend/internal/handlers"
 	"community-forum/backend/internal/middleware"
-	"community-forum/backend/internal/models"
 	"community-forum/backend/internal/usecase"
 )
 
+// - load configuration
+// - initialize database
+// - create Fiber app
+// - configure middlewares
+// - define routes
 func main() {
-	// Step 1: Load environment variables from a .env file if it exists.
-	// godotenv.Load() returns an error if the file is missing, which we handle by logging.
-	// This is a common Go idiom: check for error immediately after the function call.
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using environment variables")
-	}
-
-	// Step 2: Construct the Database Source Name (DSN) using environment variables.
-	// We use a helper function getEnv to provide default values if variables are missing.
-	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-		getEnv("DB_HOST", "localhost"),
-		getEnv("DB_USER", "postgres"),
-		getEnv("DB_PASSWORD", "postgres"),
-		getEnv("DB_NAME", "community_forum"),
-		getEnv("DB_PORT", "5433"),
-		getEnv("DB_SSLMODE", "disable"),
-	)
-
-	// Step 3: Connect to the PostgreSQL database using GORM.
-	// GORM is an ORM library that simplifies database interactions.
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		// log.Fatalf logs the error and then terminates the program with exit code 1.
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
-
-	// Step 4: Perform database migrations.
-	// AutoMigrate creates or updates database tables based on the provided GORM models.
-	if err := db.AutoMigrate(
-		&models.User{},
-		&models.Session{},
-		&models.Thread{},
-		&models.Comment{},
-		&models.Tag{},
-		&models.Vote{},
-	); err != nil {
-		log.Fatalf("Failed to migrate database: %v", err)
-	}
-
-	// Step 5: Initialize the Fiber web framework.
-	// Fiber is a high-performance web framework inspired by Express (Node.js).
+	cfg := config.Load()
+	db := config.InitDB(cfg)
 	app := fiber.New(
 		fiber.Config{
-			// Custom global error handler to return errors as JSON.
 			ErrorHandler: func(c *fiber.Ctx, err error) error {
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 					"error": err.Error(),
@@ -163,17 +122,8 @@ func main() {
 	api.Post("/tags", sessionManager.RequireAuth, tagHandler.CreateTagHandler)
 
 	// Step 12: Start the server on the configured port.
-	port := getEnv("PORT", "8080")
-	log.Printf("Server starting on http://localhost:%s", port)
-	if err := app.Listen(":" + port); err != nil {
+	log.Printf("Server starting on http://localhost:%s", cfg.Port)
+	if err := app.Listen(":" + cfg.Port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
-}
-
-// getEnv is a helper function to read environment variables or return a default value.
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }
