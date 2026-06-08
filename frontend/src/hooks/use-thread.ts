@@ -1,19 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { ThreadDetail } from "@/lib/mock-data";
-import { MOCK_FEATURED } from "@/lib/mock-data";
 
 export function useThread(slug: string) {
   return useQuery({
     queryKey: ["thread", slug],
-    queryFn: async () => {
-      try {
-        const data = await api.get<ThreadDetail>("/threads/" + slug);
-        return data?.id ? data : MOCK_FEATURED;
-      } catch {
-        return MOCK_FEATURED;
-      }
-    },
+    queryFn: () => api.get<ThreadDetail>("/threads/" + slug),
     staleTime: 60 * 1000,
   });
 }
