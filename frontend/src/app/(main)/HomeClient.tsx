@@ -6,7 +6,11 @@ import { ActiveLink } from "@/components/ActiveLink";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, MessageCircle, Filter, LayoutGrid } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useThreads, useFeaturedThread, useTrendingThreads } from "@/hooks/use-threads";
+import {
+  useThreads,
+  useFeaturedThread,
+  useTrendingThreads,
+} from "@/hooks/use-threads";
 import type { ThreadItem, ThreadDetail } from "@/lib/mock-data";
 import { timeAgo } from "@/lib/utils";
 
@@ -16,7 +20,11 @@ interface HomeClientProps {
   initialThreads: { threads: ThreadItem[]; pagination: any } | null;
 }
 
-const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeClientProps) => {
+const HomeClient = ({
+  initialFeatured,
+  initialTrending,
+  initialThreads,
+}: HomeClientProps) => {
   const [activeTab, setActiveTab] = useState(0);
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState("latest");
@@ -26,13 +34,22 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
   const threads = useThreads(page, 5, sort);
 
   const featuredThread = featured.data ?? initialFeatured;
-  const trendingData = trending.data ?? (initialTrending ? { threads: initialTrending.threads } : undefined);
-  const threadData = threads.data ?? (initialThreads ? { ...initialThreads, isEmpty: !initialThreads.threads?.length } : undefined);
+  const trendingData =
+    trending.data ??
+    (initialTrending ? { threads: initialTrending.threads } : undefined);
+  const threadData =
+    threads.data ??
+    (initialThreads
+      ? { ...initialThreads, isEmpty: !initialThreads.threads?.length }
+      : undefined);
 
   const featuredSlug = featuredThread?.slug || "architectural-shift";
   const firstTag = featuredThread?.tags?.[0]?.name || "System Core";
   const firstAuthor = featuredThread?.author?.username || "@alpha_lead";
-  const firstAuthorInitials = firstAuthor.replace("@", "").slice(0, 2).toUpperCase();
+  const firstAuthorInitials = firstAuthor
+    .replace("@", "")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <div className="px-8 py-10 max-w-[1400px] mx-auto space-y-10">
@@ -51,7 +68,10 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
         {featured.isLoading && !initialFeatured ? (
           <Skeleton className="lg:col-span-2 h-[400px] rounded-sm" />
         ) : (
-          <ActiveLink href={"/thread/" + featuredSlug} className="lg:col-span-2 group">
+          <ActiveLink
+            href={"/thread/" + featuredSlug}
+            className="lg:col-span-2 group"
+          >
             <article className="panel relative overflow-hidden h-full scanline">
               <div className="relative aspect-[2/1] overflow-hidden bg-terminal">
                 <Image
@@ -69,7 +89,9 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
                     {firstTag}
                   </Badge>
                   <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                    {featuredThread?.created_at ? timeAgo(featuredThread.created_at) : "2H AGO"}
+                    {featuredThread?.created_at
+                      ? timeAgo(featuredThread.created_at)
+                      : "2H AGO"}
                   </span>
                 </div>
                 <h2 className="heading-display text-2xl md:text-3xl text-foreground group-hover:text-primary transition-colors max-w-2xl">
@@ -80,7 +102,10 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
                     {firstAuthorInitials}
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {firstAuthor}{featuredThread?.replies_count != null ? " · " + featuredThread.replies_count + " Replies" : " · 142 Replies"}
+                    {firstAuthor}
+                    {featuredThread?.replies_count != null
+                      ? " · " + featuredThread.replies_count + " Replies"
+                      : " · 142 Replies"}
                   </span>
                 </div>
               </div>
@@ -103,7 +128,10 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
             ) : (
               <ul className="space-y-4 divide-y divide-border/60">
                 {trendingData?.threads?.map((thread: ThreadItem) => (
-                  <li key={thread.id} className="pt-4 first:pt-0 group cursor-pointer">
+                  <li
+                    key={thread.id}
+                    className="pt-4 first:pt-0 group cursor-pointer"
+                  >
                     <ActiveLink href={"/thread/" + thread.slug}>
                       <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                         {thread.title}
@@ -119,9 +147,12 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
           </div>
           <div className="panel p-5">
             <p className="text-sm text-muted-foreground italic font-mono leading-relaxed">
-              &ldquo;The digital architect builds not with stone, but with logic and light.&rdquo;
+              &ldquo;The digital architect builds not with stone, but with logic
+              and light.&rdquo;
             </p>
-            <p className="text-right terminal-label mt-3 opacity-60">NOCTURNE_OS</p>
+            <p className="text-right terminal-label mt-3 opacity-60">
+              NOCTURNE_OS
+            </p>
           </div>
         </div>
       </section>
@@ -140,7 +171,9 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
                   });
                 }}
                 className={`pb-3 text-xs uppercase tracking-[0.18em] transition-colors border-b-2 ${
-                  i === activeTab ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"
+                  i === activeTab
+                    ? "text-primary border-primary"
+                    : "text-muted-foreground border-transparent hover:text-foreground"
                 }`}
               >
                 {tab}
@@ -157,56 +190,74 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
           </div>
         </div>
 
+        {/* thread items*/}
         <div className="space-y-3">
-          {threads.isLoading && !initialThreads ? (
-            Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-[88px] w-full rounded-sm" />
-            ))
-          ) : (
-            threadData?.threads?.map((thread: ThreadItem) => {
-              const tagName = thread.tags?.[0]?.name || "TECHNICAL";
-              const authorName = thread.author?.username || "@unknown";
-              return (
-                <ActiveLink href={"/thread/" + thread.slug} key={thread.id}>
-                  <article className="panel p-4 md:p-5 grid grid-cols-[64px,1fr,auto] gap-4 md:gap-6 items-center hover:border-primary/40 transition-colors group">
-                    <div className="text-center">
-                      <div className="text-2xl font-display font-bold text-foreground">{thread.upvotes}</div>
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">votes</div>
-                    </div>
-                    <div className="space-y-2 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge className="bg-primary/10 text-primary border border-primary/30 rounded-sm uppercase text-[10px] tracking-[0.18em]">{tagName}</Badge>
-                        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                          Posted by <span className="text-primary/80">{authorName}</span> &middot; {timeAgo(thread.created_at)}
-                        </span>
+          {threads.isLoading && !initialThreads
+            ? Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-[88px] w-full rounded-sm" />
+              ))
+            : threadData?.threads?.map((thread: ThreadItem) => {
+                const tagName = thread.tags?.[0]?.name || "TECHNICAL";
+                const authorName = thread.author?.username || "@unknown";
+                return (
+                  <ActiveLink href={"/thread/" + thread.slug} key={thread.id}>
+                    <article className="panel p-4 md:p-5 grid grid-cols-[64px,1fr,auto] gap-4 md:gap-6 items-center hover:border-primary/40 transition-colors group">
+                      <div className="text-center">
+                        <div className="text-2xl font-display font-bold text-foreground">
+                          {thread.upvotes}
+                        </div>
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                          votes
+                        </div>
                       </div>
-                      <h3 className="text-base md:text-lg font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                        {thread.title}
-                      </h3>
-                    </div>
-                    <div className="flex items-center gap-4 text-muted-foreground">
-                      <div className="hidden md:flex -space-x-2">
-                        {[...Array(3)].map((_, j) => (
-                          <div key={`avatar-${j}`} className="h-7 w-7 rounded-full bg-secondary border-2 border-card" />
-                        ))}
+                      <div className="space-y-2 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className="bg-primary/10 text-primary border border-primary/30 rounded-sm uppercase text-[10px] tracking-[0.18em]">
+                            {tagName}
+                          </Badge>
+                          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                            Posted by{" "}
+                            <span className="text-primary/80">
+                              {authorName}
+                            </span>{" "}
+                            &middot; {timeAgo(thread.created_at)}
+                          </span>
+                        </div>
+                        <h3 className="text-base md:text-lg font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                          {thread.title}
+                        </h3>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <MessageCircle className="h-4 w-4" />
-                        <span className="text-sm font-mono">{thread.replies_count}</span>
+                      <div className="flex items-center gap-4 text-muted-foreground">
+                        <div className="hidden md:flex -space-x-2">
+                          {[...Array(3)].map((_, j) => (
+                            <div
+                              key={`avatar-${j}`}
+                              className="h-7 w-7 rounded-full bg-secondary border-2 border-card"
+                            />
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <MessageCircle className="h-4 w-4" />
+                          <span className="text-sm font-mono">
+                            {thread.replies_count}
+                          </span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                       </div>
-                      <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                    </div>
-                  </article>
-                </ActiveLink>
-              );
-            })
-          )}
+                    </article>
+                  </ActiveLink>
+                );
+              })}
         </div>
 
         {threadData?.pagination && (
           <div className="flex items-center justify-center gap-2 pt-4">
             <button
-              onClick={() => startTransition(() => setPage((p: number) => Math.max(1, p - 1)))}
+              onClick={() =>
+                startTransition(() =>
+                  setPage((p: number) => Math.max(1, p - 1)),
+                )
+              }
               disabled={page <= 1}
               className="px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground border border-border rounded-sm hover:border-primary/40 disabled:opacity-40"
             >
@@ -214,7 +265,7 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
             </button>
             {Array.from(
               { length: Math.min(threadData.pagination.totalPages, 5) },
-              (_, i) => i + 1
+              (_, i) => i + 1,
             ).map((p) => (
               <button
                 key={p}
@@ -232,7 +283,11 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
               <>
                 <span className="text-muted-foreground">...</span>
                 <button
-                  onClick={() => startTransition(() => setPage(threadData.pagination.totalPages))}
+                  onClick={() =>
+                    startTransition(() =>
+                      setPage(threadData.pagination.totalPages),
+                    )
+                  }
                   className="h-8 w-10 text-xs font-mono rounded-sm border border-border text-muted-foreground hover:border-primary/40"
                 >
                   {String(threadData.pagination.totalPages).padStart(2, "0")}
@@ -240,7 +295,13 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
               </>
             )}
             <button
-              onClick={() => startTransition(() => setPage((p: number) => Math.min(threadData.pagination.totalPages, p + 1)))}
+              onClick={() =>
+                startTransition(() =>
+                  setPage((p: number) =>
+                    Math.min(threadData.pagination.totalPages, p + 1),
+                  ),
+                )
+              }
               disabled={page >= threadData.pagination.totalPages}
               className="px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground border border-border rounded-sm hover:border-primary/40 disabled:opacity-40"
             >

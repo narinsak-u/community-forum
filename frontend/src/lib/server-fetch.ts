@@ -3,7 +3,7 @@ const API_BASE =
 
 export async function fetchJSON<T>(url: string): Promise<T | null> {
   try {
-    const res = await fetch(url, { next: { revalidate: 60 } });
+    const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return null;
     return res.json();
   } catch {

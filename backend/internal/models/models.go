@@ -65,9 +65,9 @@ type Thread struct {
 	Votes    []Vote    `gorm:"foreignKey:ThreadID" json:"votes,omitempty"`
 
 	// Computed fields — populated via subquery SELECTs, not stored in DB.
-	Upvotes      int64 `gorm:"-" json:"upvotes"`
-	Downvotes    int64 `gorm:"-" json:"downvotes"`
-	RepliesCount int64 `gorm:"-" json:"replies_count"`
+	Upvotes      int64 `gorm:"<-:false" json:"upvotes"`
+	Downvotes    int64 `gorm:"<-:false" json:"downvotes"`
+	RepliesCount int64 `gorm:"<-:false" json:"replies_count"`
 }
 
 // Comment represents a reply within a thread.

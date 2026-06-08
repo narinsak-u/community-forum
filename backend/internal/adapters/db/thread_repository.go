@@ -15,6 +15,8 @@ type GORMThreadRepository struct {
 	db *gorm.DB
 }
 
+const threadColumns = "threads.id, threads.created_at, threads.updated_at, threads.deleted_at, threads.title, threads.slug, threads.content, threads.status, threads.view_count, threads.author_id"
+
 func NewGORMThreadRepository(db *gorm.DB) *GORMThreadRepository {
 	return &GORMThreadRepository{db: db}
 }
@@ -53,7 +55,7 @@ func (r *GORMThreadRepository) List(ctx context.Context, page, pageSize int, sor
 
 	offset := (page - 1) * pageSize
 	dbQuery := r.db.WithContext(ctx).
-		Select("threads.*, "+
+		Select(threadColumns+", "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = 1) AS upvotes, "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = -1) AS downvotes, "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM comments WHERE comments.thread_id = threads.id AND comments.parent_id IS NULL) AS replies_count").
@@ -96,7 +98,7 @@ func (r *GORMThreadRepository) ListByUser(ctx context.Context, username string, 
 	offset := (page - 1) * pageSize
 	var mThreads []models.Thread
 	err := r.db.WithContext(ctx).
-		Select("threads.*, "+
+		Select(threadColumns+", "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = 1) AS upvotes, "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = -1) AS downvotes, "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM comments WHERE comments.thread_id = threads.id AND comments.parent_id IS NULL) AS replies_count").
@@ -122,7 +124,7 @@ func (r *GORMThreadRepository) GetFeatured(ctx context.Context) (*domain.Thread,
 	oneWeekAgo := time.Now().Add(-7 * 24 * time.Hour)
 
 	err := r.db.WithContext(ctx).
-		Select("threads.*, "+
+		Select(threadColumns+", "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = 1) AS upvotes, "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = -1) AS downvotes, "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM comments WHERE comments.thread_id = threads.id AND comments.parent_id IS NULL) AS replies_count").
@@ -143,7 +145,7 @@ func (r *GORMThreadRepository) GetTrending(ctx context.Context) ([]domain.Thread
 	var mThreads []models.Thread
 
 	err := r.db.WithContext(ctx).
-		Select("threads.*, "+
+		Select(threadColumns+", "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = 1) AS upvotes, "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = -1) AS downvotes, "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM comments WHERE comments.thread_id = threads.id AND comments.parent_id IS NULL) AS replies_count").
@@ -168,17 +170,19 @@ func (r *GORMThreadRepository) GetTrending(ctx context.Context) ([]domain.Thread
 
 func (r *GORMThreadRepository) GetBySlug(ctx context.Context, slug string) (*domain.Thread, error) {
 	var m models.Thread
-	if err := r.db.WithContext(ctx).Where("slug = ?", slug).First(&m).Error; err != nil {
-		return nil, err
-	}
-
-	// Fetch everything: Author, Tags, and Nested Comments.
-	r.db.WithContext(ctx).Preload("Author").Preload("Tags").
+	if err := r.db.WithContext(ctx).
+		Select(threadColumns+", "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = 1) AS upvotes, "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = -1) AS downvotes, "+
+			"(SELECT COALESCE(COUNT(*), 0) FROM comments WHERE comments.thread_id = threads.id AND comments.parent_id IS NULL) AS replies_count").
+		Preload("Author").Preload("Tags").
 		Preload("Comments", "parent_id IS NULL").
 		Preload("Comments.Replies").
 		Preload("Comments.Author").
 		Preload("Comments.Replies.Author").
-		First(&m, m.ID)
+		Where("slug = ?", slug).First(&m).Error; err != nil {
+		return nil, err
+	}
 
 	return threadFromModel(&m, r.db), nil
 }

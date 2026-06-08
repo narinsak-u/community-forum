@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	db_adapter "community-forum/backend/internal/adapters/db"
 	"community-forum/backend/internal/handlers"
@@ -115,24 +116,20 @@ func TestGetThreadHandler_Success(t *testing.T) {
 
 	mock.ExpectQuery(`SELECT .+ FROM "threads"`).
 		WithArgs("hello-world").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "slug", "content", "status", "author_id"}).
-			AddRow(1, "Hello World", "hello-world", "Content here", "published", 1))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "slug", "content", "status", "author_id", "created_at", "view_count", "upvotes", "downvotes", "replies_count"}).
+			AddRow(1, "Hello World", "hello-world", "Content here", "published", 1, time.Now(), 5, 10, 2, 3))
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "avatar"}).AddRow(1, "johndoe", ""))
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "comments"`)).
+		WillReturnRows(sqlmock.NewRows([]string{}))
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "thread_tags"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"thread_id", "tag_id"}))
 
 	mock.ExpectBegin()
 	mock.ExpectExec(regexp.QuoteMeta(`UPDATE "threads" SET`)).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-
-	mock.ExpectQuery(`SELECT .+ FROM "threads"`).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "slug", "content", "status", "author_id", "view_count"}).
-			AddRow(1, "Hello World", "hello-world", "Content here", "published", 1, 5))
-
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "avatar"}).AddRow(1, "johndoe", ""))
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "thread_tags"`)).
-		WillReturnRows(sqlmock.NewRows([]string{"thread_id", "tag_id"}))
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "comments"`)).
-		WillReturnRows(sqlmock.NewRows([]string{}))
 
 	req := httptest.NewRequest(http.MethodGet, "/api/threads/hello-world", nil)
 	resp, err := app.Test(req)
