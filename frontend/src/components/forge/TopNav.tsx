@@ -13,7 +13,7 @@ const navItems = [
 ];
 
 export const TopNav = () => {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl">
@@ -78,7 +78,7 @@ export const TopNav = () => {
           </ActiveLink>
 
           <button
-            onClick={toggleTheme}
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="h-9 w-9 grid place-items-center text-muted-foreground hover:text-primary transition-colors"
             aria-label={
               theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
