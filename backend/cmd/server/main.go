@@ -46,7 +46,7 @@ func main() {
 	app.Use(recover.New())
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:8080,http://127.0.0.1:8080",
+		AllowOrigins:     cfg.CORSOrigins,
 		AllowCredentials: true,
 		AllowMethods:     "GET,POST,PUT,DELETE,PATCH,OPTIONS",
 		AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
@@ -83,6 +83,10 @@ func main() {
 	// 3. Handlers (Controllers): HTTP layer, receiving services via Dependency Injection.
 	authHandler := handlers.NewAuthHandler(authService, sessionManager)
 	threadHandler := handlers.NewThreadHandler(threadService, sessionManager)
+	commentHandler := handlers.NewCommentHandler(commentService, sessionManager)
+	voteHandler := handlers.NewVoteHandler(voteService, sessionManager)
+	userHandler := handlers.NewUserHandler(userService, threadService, sessionManager)
+	tagHandler := handlers.NewTagHandler(tagService, sessionManager)
 
 	// Step 11: Register API routes.
 	// Auth routes
@@ -96,28 +100,20 @@ func main() {
 	api.Get("/threads", threadHandler.ListThreadsHandler)
 	api.Get("/threads/featured", threadHandler.FeaturedThreadHandler)
 	api.Get("/threads/trending", threadHandler.TrendingThreadsHandler)
-	api.Get("/threads/:slug", sessionManager.RequireAuth, threadHandler.GetThreadHandler)
+	api.Get("/threads/:slug", threadHandler.GetThreadHandler)
 	api.Patch("/threads/:slug", sessionManager.RequireAuth, threadHandler.UpdateThreadHandler)
 	api.Delete("/threads/:slug", sessionManager.RequireAuth, threadHandler.DeleteThreadHandler)
-
-	commentHandler := handlers.NewCommentHandler(commentService, sessionManager)
-	voteHandler := handlers.NewVoteHandler(voteService, sessionManager)
 
 	// Comment and Vote routes
 	api.Post("/threads/:slug/comments", sessionManager.RequireAuth, commentHandler.CreateCommentHandler)
 	api.Delete("/comments/:id", sessionManager.RequireAuth, commentHandler.DeleteCommentHandler)
-
 	api.Post("/threads/:slug/vote", sessionManager.RequireAuth, voteHandler.VoteThreadHandler)
 	api.Post("/comments/:id/vote", sessionManager.RequireAuth, voteHandler.VoteCommentHandler)
-
-	userHandler := handlers.NewUserHandler(userService, threadService, sessionManager)
-	tagHandler := handlers.NewTagHandler(tagService, sessionManager)
 
 	// User and Tag routes
 	api.Get("/users/:username", userHandler.GetUserHandler)
 	api.Patch("/users/:username", sessionManager.RequireAuth, userHandler.UpdateUserHandler)
 	api.Get("/users/:username/threads", userHandler.GetUserThreadsHandler)
-
 	api.Get("/tags", tagHandler.ListTagsHandler)
 	api.Post("/tags", sessionManager.RequireAuth, tagHandler.CreateTagHandler)
 

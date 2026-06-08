@@ -110,7 +110,7 @@ func (r *GORMThreadRepository) GetFeatured(ctx context.Context) (*domain.Thread,
 	oneWeekAgo := time.Now().Add(-7 * 24 * time.Hour)
 
 	err := r.db.WithContext(ctx).
-		Where("status = ? AND created_at >= ?", "published", oneWeekAgo).
+		Where("threads.status = ? AND threads.created_at >= ?", "published", oneWeekAgo).
 		Joins("LEFT JOIN votes ON votes.thread_id = threads.id").
 		Select("threads.*, COALESCE(SUM(CASE WHEN votes.value = 1 THEN 1 WHEN votes.value = -1 THEN -1 ELSE 0 END), 0) as score").
 		Group("threads.id").

@@ -6,7 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ThumbsUp, ThumbsDown, Share2, Bookmark, Flag, Code2, Link2, Image as ImageIcon } from "lucide-react";
+import {
+  ThumbsUp,
+  ThumbsDown,
+  Share2,
+  Bookmark,
+  Flag,
+  Code2,
+  Link2,
+  Image as ImageIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useThread } from "@/hooks/use-thread";
 import { useCreateComment } from "@/hooks/use-comments";
@@ -18,7 +27,10 @@ interface ThreadDetailClientProps {
   initialThread?: any;
 }
 
-const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) => {
+const ThreadDetailClient = ({
+  slug,
+  initialThread,
+}: ThreadDetailClientProps) => {
   const [replyContent, setReplyContent] = useState("");
   const user = useAuthStore((s) => s.user);
 
@@ -27,6 +39,8 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
   const voteThread = useVoteThread(slug);
 
   const currentThread = thread || initialThread;
+
+  console.log("currentThread", currentThread);
 
   const author = currentThread?.author;
   const authorInitials = author?.username
@@ -37,7 +51,8 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
     voteThread.mutate(
       { value },
       {
-        onError: (err) => toast.error("VOTE_FAILED", { description: err.message }),
+        onError: (err) =>
+          toast.error("VOTE_FAILED", { description: err.message }),
       },
     );
   };
@@ -51,7 +66,8 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
           setReplyContent("");
           toast.success("REPLY_TRANSMITTED");
         },
-        onError: (err) => toast.error("TRANSMIT_FAILED", { description: err.message }),
+        onError: (err) =>
+          toast.error("TRANSMIT_FAILED", { description: err.message }),
       },
     );
   };
@@ -76,9 +92,13 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
     <div className="px-8 py-10 max-w-[1100px] mx-auto space-y-8 animate-fade-up">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-        <span>Discussion</span><span>/</span>
-        <span>{currentThread?.tags?.[0]?.name || "Technical"}</span><span>/</span>
-        <span className="text-primary">{currentThread?.title?.slice(0, 24) || "Thread"}...</span>
+        <span>Discussion</span>
+        <span>/</span>
+        <span>{currentThread?.tags?.[0]?.name || "Technical"}</span>
+        <span>/</span>
+        <span className="text-primary">
+          {currentThread?.title?.slice(0, 24) || "Thread"}...
+        </span>
       </nav>
 
       {/* Title */}
@@ -97,28 +117,47 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
               {authorInitials}
             </div>
             <div>
-              <div className="text-sm font-semibold text-foreground">{author?.username || "@unknown"}</div>
+              <div className="text-sm font-semibold text-foreground">
+                {author?.username || "@unknown"}
+              </div>
               <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                {currentThread?.created_at ? new Date(currentThread.created_at).toLocaleDateString() : ""}
+                {currentThread?.created_at
+                  ? new Date(currentThread.created_at).toLocaleDateString()
+                  : ""}
               </div>
             </div>
           </div>
           <div className="flex gap-8 text-right">
             <div>
-              <div className="text-lg font-display font-bold text-foreground">{formatCount(currentThread?.view_count || 0)}</div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">VIEWS</div>
+              <div className="text-lg font-display font-bold text-foreground">
+                {formatCount(currentThread?.view_count || 0)}
+              </div>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                VIEWS
+              </div>
             </div>
             <div>
-              <div className="text-lg font-display font-bold text-foreground">{currentThread?.replies_count || 0}</div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">REPLIES</div>
+              <div className="text-lg font-display font-bold text-foreground">
+                {currentThread?.replies_count || 0}
+              </div>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                REPLIES
+              </div>
             </div>
             <div>
               <div className="text-lg font-display font-bold text-primary">
-                {currentThread?.upvotes != null && (currentThread.upvotes + currentThread.downvotes) > 0
-                  ? Math.round((currentThread.upvotes / (currentThread.upvotes + currentThread.downvotes)) * 100) + "%"
+                {currentThread?.upvotes != null &&
+                currentThread.upvotes + currentThread.downvotes > 0
+                  ? Math.round(
+                      (currentThread.upvotes /
+                        (currentThread.upvotes + currentThread.downvotes)) *
+                        100,
+                    ) + "%"
                   : "98%"}
               </div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">TRUST_INDEX</div>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                TRUST_INDEX
+              </div>
             </div>
           </div>
         </div>
@@ -126,12 +165,18 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
 
       {/* Hero image */}
       <div className="panel scanline relative overflow-hidden aspect-[2/1]">
-        <img src="/images/forge-hero.jpg" alt="System wireframe" className="w-full h-full object-cover" width={1280} height={640} />
+        <img
+          src="/images/forge-hero.jpg"
+          alt="System wireframe"
+          className="w-full h-full object-cover"
+          width={1280}
+          height={640}
+        />
       </div>
 
       {/* Body + sidebar */}
       <div className="grid lg:grid-cols-[1fr,260px] gap-8">
-        <article className="space-y-6">
+        <article className="space-y-6 text-sm">
           {currentThread?.content ? (
             currentThread.content.split("\n\n").map((para, i) => (
               <p key={i} className="text-foreground/85 leading-relaxed">
@@ -139,11 +184,14 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
               </p>
             ))
           ) : (
-            <p className="text-foreground/85 leading-relaxed">Loading content...</p>
+            <p className="text-foreground/85 leading-relaxed">
+              Loading content...
+            </p>
           )}
 
           <blockquote className="border-l-2 border-primary pl-5 py-2 italic text-primary/90">
-            "Precision is not just about speed; it's about predictable outcomes in a chaotic data environment."
+            "Precision is not just about speed; it's about predictable outcomes
+            in a chaotic data environment."
           </blockquote>
 
           {/* Vote bar */}
@@ -155,7 +203,8 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
                 className="border-border hover:border-primary hover:text-primary rounded-sm"
                 onClick={() => handleVote(1)}
               >
-                <ThumbsUp className="h-3.5 w-3.5 mr-2" /> {currentThread?.upvotes || 0}
+                <ThumbsUp className="h-3.5 w-3.5 mr-2" />{" "}
+                {currentThread?.upvotes || 0}
               </Button>
               <Button
                 variant="outline"
@@ -167,9 +216,15 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
               </Button>
             </div>
             <div className="flex items-center gap-4 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              <button className="flex items-center gap-1.5 hover:text-primary"><Share2 className="h-3.5 w-3.5" /> Share</button>
-              <button className="flex items-center gap-1.5 hover:text-primary"><Bookmark className="h-3.5 w-3.5" /> Bookmark</button>
-              <button className="flex items-center gap-1.5 hover:text-primary"><Flag className="h-3.5 w-3.5" /> Report</button>
+              <button className="flex items-center gap-1.5 hover:text-primary">
+                <Share2 className="h-3.5 w-3.5" /> Share
+              </button>
+              <button className="flex items-center gap-1.5 hover:text-primary">
+                <Bookmark className="h-3.5 w-3.5" /> Bookmark
+              </button>
+              <button className="flex items-center gap-1.5 hover:text-primary">
+                <Flag className="h-3.5 w-3.5" /> Report
+              </button>
             </div>
           </div>
         </article>
@@ -179,18 +234,26 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
           <div className="panel p-5 space-y-4">
             <SectionLabel>References</SectionLabel>
             <ul className="space-y-2 text-sm">
-              {["REF_CORE_041", "REACTIVE_HOOKS.DOC", "V2.3_LEGACY_PATCH"].map((r) => (
-                <li key={r} className="flex items-center gap-2 text-primary hover:text-primary-glow cursor-pointer font-mono">
-                  <Link2 className="h-3 w-3" /> {r}
-                </li>
-              ))}
+              {["REF_CORE_041", "REACTIVE_HOOKS.DOC", "V2.3_LEGACY_PATCH"].map(
+                (r) => (
+                  <li
+                    key={r}
+                    className="flex items-center gap-2 text-primary hover:text-primary-glow cursor-pointer font-mono"
+                  >
+                    <Link2 className="h-3 w-3" /> {r}
+                  </li>
+                ),
+              )}
             </ul>
           </div>
           <div className="panel p-5 space-y-3">
             <SectionLabel>Participants</SectionLabel>
             <div className="flex flex-wrap gap-1">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/40 to-primary-deep/30 border border-border" />
+                <div
+                  key={i}
+                  className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/40 to-primary-deep/30 border border-border"
+                />
               ))}
               <div className="h-8 w-8 rounded-full bg-secondary border border-border grid place-items-center text-[10px] font-mono text-primary">
                 +{currentThread?.replies_count || 0}
@@ -202,11 +265,17 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
 
       {/* Replies header */}
       <div className="flex items-center justify-between border-t border-border/60 pt-8">
-        <h3 className="heading-display text-2xl text-foreground">{currentThread?.replies_count || 0} Replies</h3>
+        <h3 className="heading-display text-2xl text-foreground">
+          {currentThread?.replies_count || 0} Replies
+        </h3>
         <div className="flex gap-4 text-[10px] uppercase tracking-[0.18em]">
           <span className="text-muted-foreground">SORT_BY:</span>
-          <button className="text-primary border-b border-primary">TOP_RATED</button>
-          <button className="text-muted-foreground hover:text-foreground">LATEST</button>
+          <button className="text-primary border-b border-primary">
+            TOP_RATED
+          </button>
+          <button className="text-muted-foreground hover:text-foreground">
+            LATEST
+          </button>
         </div>
       </div>
 
@@ -218,13 +287,20 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-secondary border border-border grid place-items-center text-[10px] font-mono text-primary">
-                    {comment.author?.username?.replace("@", "").slice(0, 2).toUpperCase() ?? "??"}
+                    {comment.author?.username
+                      ?.replace("@", "")
+                      .slice(0, 2)
+                      .toUpperCase() ?? "??"}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground">{comment.author?.username || "@unknown"}</span>
+                      <span className="text-sm font-semibold text-foreground">
+                        {comment.author?.username || "@unknown"}
+                      </span>
                       <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                        {comment.created_at ? new Date(comment.created_at).toLocaleDateString() : ""}
+                        {comment.created_at
+                          ? new Date(comment.created_at).toLocaleDateString()
+                          : ""}
                       </span>
                     </div>
                   </div>
@@ -233,31 +309,49 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
                   +{comment.upvotes} <ThumbsUp className="h-3.5 w-3.5" />
                 </div>
               </div>
-              <p className="text-sm text-foreground/85 leading-relaxed">{comment.content}</p>
+              <p className="text-xs text-foreground/85 leading-relaxed">
+                {comment.content}
+              </p>
               <div className="flex gap-4 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                 <button className="hover:text-primary">REPLY</button>
-                <button className="hover:text-primary">SHARE</button>
+                {/*<button className="hover:text-primary">SHARE</button>*/}
               </div>
 
               {comment.replies?.map((reply) => (
-                <div key={reply.id} className="ml-6 mt-4 pl-5 border-l border-primary/30 space-y-2">
+                <div
+                  key={reply.id}
+                  className="ml-6 mt-4 pl-5 border-l border-primary/30 space-y-2"
+                >
                   <div className="flex items-center gap-2">
                     <div className="h-7 w-7 rounded-full bg-gradient-signal grid place-items-center text-[9px] font-bold text-primary-foreground">
-                      {reply.author?.username?.replace("@", "").slice(0, 2).toUpperCase() || "??"}
+                      {reply.author?.username
+                        ?.replace("@", "")
+                        .slice(0, 2)
+                        .toUpperCase() || "??"}
                     </div>
-                    <span className="text-sm font-semibold text-foreground">{reply.author?.username || "@unknown"}</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      {reply.author?.username || "@unknown"}
+                    </span>
                     <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {reply.created_at ? new Date(reply.created_at).toLocaleDateString() : ""}
+                      {reply.created_at
+                        ? new Date(reply.created_at).toLocaleDateString()
+                        : ""}
                     </span>
                   </div>
-                  <p className="text-sm text-foreground/85 leading-relaxed">{reply.content}</p>
-                  <button className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-primary">REPLY</button>
+                  <p className="text-sm text-foreground/85 leading-relaxed">
+                    {reply.content}
+                  </p>
+                  <button className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-primary">
+                    REPLY
+                  </button>
                 </div>
               ))}
             </div>
           ))
         ) : (
-          <p className="text-sm text-muted-foreground italic">No replies yet. Be the first to contribute.</p>
+          <p className="text-sm text-muted-foreground italic">
+            No replies yet. Be the first to contribute.
+          </p>
         )}
       </div>
 
@@ -278,9 +372,15 @@ const ThreadDetailClient = ({ slug, initialThread }: ThreadDetailClientProps) =>
           />
           <div className="flex items-center justify-between">
             <div className="flex gap-2 text-muted-foreground">
-              <button className="hover:text-primary"><ImageIcon className="h-4 w-4" /></button>
-              <button className="hover:text-primary"><Code2 className="h-4 w-4" /></button>
-              <button className="hover:text-primary font-bold text-sm w-4">B</button>
+              <button className="hover:text-primary">
+                <ImageIcon className="h-4 w-4" />
+              </button>
+              <button className="hover:text-primary">
+                <Code2 className="h-4 w-4" />
+              </button>
+              <button className="hover:text-primary font-bold text-sm w-4">
+                B
+              </button>
             </div>
             <Button
               onClick={handleSubmitReply}
