@@ -21,6 +21,7 @@ import { useThread } from "@/hooks/use-thread";
 import { useCreateComment } from "@/hooks/use-comments";
 import { useVoteThread } from "@/hooks/use-votes";
 import { useAuthStore } from "@/stores/auth-store";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 
 interface ThreadDetailClientProps {
   slug: string;
@@ -33,6 +34,7 @@ const ThreadDetailClient = ({
 }: ThreadDetailClientProps) => {
   const [replyContent, setReplyContent] = useState("");
   const user = useAuthStore((s) => s.user);
+  const { requireAuth } = useRequireAuth();
 
   const { data: thread, isLoading } = useThread(slug);
   const createComment = useCreateComment(slug);
@@ -40,14 +42,13 @@ const ThreadDetailClient = ({
 
   const currentThread = thread || initialThread;
 
-  console.log("currentThread", currentThread);
-
   const author = currentThread?.author;
   const authorInitials = author?.username
     ? author.username.replace("@", "").slice(0, 2).toUpperCase()
     : "AL";
 
   const handleVote = (value: number) => {
+    if (!requireAuth({ toast: true, description: "Authenticate to cast a signal." })) return;
     voteThread.mutate(
       { value },
       {
@@ -59,6 +60,7 @@ const ThreadDetailClient = ({
 
   const handleSubmitReply = () => {
     if (!replyContent.trim()) return;
+    if (!requireAuth({ toast: true, description: "Authenticate to transmit a reply." })) return;
     createComment.mutate(
       { content: replyContent },
       {

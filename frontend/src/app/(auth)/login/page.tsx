@@ -5,7 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, KeyRound, User, Mail, ShieldCheck, Fingerprint } from "lucide-react";
+import {
+  ArrowRight,
+  KeyRound,
+  User,
+  Mail,
+  ShieldCheck,
+  Fingerprint,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useSignin, useSignup } from "@/hooks/use-auth";
 
@@ -91,8 +98,13 @@ function LoginForm() {
 
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-8 py-6">
-        <button onClick={() => router.push("/")} className="flex items-center gap-3 group">
-          <div className="h-10 w-10 grid place-items-center bg-gradient-signal rounded-sm font-display font-bold text-xl text-primary-foreground transition-transform group-hover:-rotate-6">M</div>
+        <button
+          onClick={() => router.push("/")}
+          className="flex items-center gap-3 group"
+        >
+          <div className="h-10 w-10 grid place-items-center bg-gradient-signal rounded-sm font-display font-bold text-xl text-primary-foreground transition-transform group-hover:-rotate-6">
+            M
+          </div>
           <div className="font-display font-bold text-xl tracking-wide">
             MIDNIGHT <span className="text-primary">FORGE</span>
           </div>
@@ -102,15 +114,24 @@ function LoginForm() {
             <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
             SYSTEM: <span className="text-foreground">ONLINE</span>
           </span>
-          <span>AUTH_PROTOCOL: <span className="text-primary">V4.0.2</span></span>
+          <span>
+            AUTH_PROTOCOL: <span className="text-primary">V4.0.2</span>
+          </span>
         </div>
       </header>
 
       {/* Side meta */}
       <div className="hidden lg:block absolute top-32 right-10 text-right text-[10px] font-mono text-muted-foreground/70 leading-relaxed tracking-wider">
-        <div>// KERNEL_TYPE: <span className="text-foreground/80">MONOLITHIC</span></div>
-        <div>// ENCRYPTION: <span className="text-foreground/80">AES-256-GCM</span></div>
-        <div>// PROTOCOL: <span className="text-foreground/80">FORGE_STANDARD_V4</span></div>
+        <div>
+          // KERNEL_TYPE: <span className="text-foreground/80">MONOLITHIC</span>
+        </div>
+        <div>
+          // ENCRYPTION: <span className="text-foreground/80">AES-256-GCM</span>
+        </div>
+        <div>
+          // PROTOCOL:{" "}
+          <span className="text-foreground/80">FORGE_STANDARD_V4</span>
+        </div>
       </div>
 
       <main className="relative z-10 grid place-items-center px-4 py-10 min-h-[calc(100vh-180px)]">
@@ -155,9 +176,15 @@ function LoginForm() {
             </h1>
             <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               {mode === "signin" ? (
-                <>SECURE_LINK_ESTABLISHED <span className="text-primary">//</span> ENTER_CREDENTIALS</>
+                <>
+                  SECURE_LINK_ESTABLISHED{" "}
+                  <span className="text-primary">//</span> ENTER_CREDENTIALS
+                </>
               ) : (
-                <>NEW_ARCHITECT_REGISTRATION <span className="text-primary">//</span> CONFIGURE_KEYS</>
+                <>
+                  NEW_ARCHITECT_REGISTRATION{" "}
+                  <span className="text-primary">//</span> CONFIGURE_KEYS
+                </>
               )}
             </p>
           </div>
@@ -242,9 +269,14 @@ function LoginForm() {
                     onCheckedChange={(v) => setPersist(!!v)}
                     className="rounded-none border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                   />
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">RECOGNITION_PERSISTENCE</span>
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    RECOGNITION_PERSISTENCE
+                  </span>
                 </label>
-                <button type="button" className="text-[10px] uppercase tracking-[0.18em] text-primary hover:text-primary-glow">
+                <button
+                  type="button"
+                  className="text-[10px] uppercase tracking-[0.18em] text-primary hover:text-primary-glow"
+                >
                   LOST_KEY?
                 </button>
               </div>
@@ -256,7 +288,8 @@ function LoginForm() {
                   className="mt-0.5 rounded-none border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                 />
                 <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground leading-relaxed">
-                  PROTOCOL_ACK <span className="text-primary">//</span> I accept the Forge Manifesto and Encryption Terms.
+                  PROTOCOL_ACK <span className="text-primary">//</span> I accept
+                  the Forge Manifesto and Encryption Terms.
                 </span>
               </label>
             )}
@@ -309,14 +342,24 @@ function LoginForm() {
 
             <p className="text-center text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground pt-1">
               {mode === "signin" ? (
-                <>NO_IDENTITY?{" "}
-                  <button type="button" onClick={() => switchMode("signup")} className="text-primary hover:text-primary-glow">
+                <>
+                  NO_IDENTITY?{" "}
+                  <button
+                    type="button"
+                    onClick={() => switchMode("signup")}
+                    className="text-primary hover:text-primary-glow"
+                  >
                     FORGE_ONE →
                   </button>
                 </>
               ) : (
-                <>IDENTITY_EXISTS?{" "}
-                  <button type="button" onClick={() => switchMode("signin")} className="text-primary hover:text-primary-glow">
+                <>
+                  IDENTITY_EXISTS?{" "}
+                  <button
+                    type="button"
+                    onClick={() => switchMode("signin")}
+                    className="text-primary hover:text-primary-glow"
+                  >
                     ← RETURN_TO_TERMINAL
                   </button>
                 </>
@@ -327,7 +370,8 @@ function LoginForm() {
 
         <div className="mt-8 max-w-md w-full grid grid-cols-2 gap-4 text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70 font-mono">
           <div>
-            AUTHORIZED ACCESS ONLY. UNAUTHORIZED ENTRIES ARE LOGGED AND REPORTED TO NODE ADMINISTRATORS.
+            AUTHORIZED ACCESS ONLY. UNAUTHORIZED ENTRIES ARE LOGGED AND REPORTED
+            TO NODE ADMINISTRATORS.
           </div>
           <div className="text-right">
             FORGE_REF: <span className="text-foreground/80">MNF-0912</span>
