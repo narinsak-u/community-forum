@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 import { useThread } from "@/hooks/use-thread";
 import { useCreateComment } from "@/hooks/use-comments";
-import { useVoteThread } from "@/hooks/use-votes";
+import { useVoteThread, useVoteComment } from "@/hooks/use-votes";
 import { useAuthStore } from "@/stores/auth-store";
 import { useRequireAuth } from "@/hooks/use-require-auth";
 
@@ -34,13 +34,17 @@ const ThreadDetailClient = ({
 }: ThreadDetailClientProps) => {
   const [rootReplyContent, setRootReplyContent] = useState("");
   const [replyContent, setReplyContent] = useState("");
-  const [replyTarget, setReplyTarget] = useState<{ id: number; author: string } | null>(null);
+  const [replyTarget, setReplyTarget] = useState<{
+    id: number;
+    author: string;
+  } | null>(null);
   const user = useAuthStore((s) => s.user);
   const { requireAuth } = useRequireAuth();
 
   const { data: thread, isLoading } = useThread(slug);
   const createComment = useCreateComment(slug);
   const voteThread = useVoteThread(slug);
+  const voteComment = useVoteComment(slug);
 
   const currentThread = thread || initialThread;
 
@@ -50,7 +54,13 @@ const ThreadDetailClient = ({
     : "AL";
 
   const handleVote = (value: number) => {
-    if (!requireAuth({ toast: true, description: "Authenticate to cast a signal." })) return;
+    if (
+      !requireAuth({
+        toast: true,
+        description: "Authenticate to cast a signal.",
+      })
+    )
+      return;
     voteThread.mutate(
       { value },
       {
@@ -60,9 +70,32 @@ const ThreadDetailClient = ({
     );
   };
 
+  const handleVoteComment = (commentId: number, value: number) => {
+    if (
+      !requireAuth({
+        toast: true,
+        description: "Authenticate to cast a signal.",
+      })
+    )
+      return;
+    voteComment.mutate(
+      { commentId, value },
+      {
+        onError: (err) =>
+          toast.error("VOTE_FAILED", { description: err.message }),
+      },
+    );
+  };
+
   const handleSubmitReply = () => {
     if (!rootReplyContent.trim()) return;
-    if (!requireAuth({ toast: true, description: "Authenticate to transmit a reply." })) return;
+    if (
+      !requireAuth({
+        toast: true,
+        description: "Authenticate to transmit a reply.",
+      })
+    )
+      return;
     createComment.mutate(
       { content: rootReplyContent },
       {
@@ -309,8 +342,21 @@ const ThreadDetailClient = ({
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-primary text-sm font-mono">
-                  +{comment.upvotes} <ThumbsUp className="h-3.5 w-3.5" />
+                {/*votes*/}
+                <div className="flex items-center gap-2 text-sm font-mono">
+                  <button
+                    onClick={() => handleVoteComment(comment.id, 1)}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <ThumbsUp className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="text-primary">{comment.upvotes}</span>
+                  <button
+                    onClick={() => handleVoteComment(comment.id, -1)}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <ThumbsDown className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </div>
               <p className="text-xs text-foreground/85 leading-relaxed">
@@ -348,7 +394,13 @@ const ThreadDetailClient = ({
                       size="sm"
                       onClick={() => {
                         if (!replyContent.trim()) return;
-                        if (!requireAuth({ toast: true, description: "Authenticate to transmit a reply." })) return;
+                        if (
+                          !requireAuth({
+                            toast: true,
+                            description: "Authenticate to transmit a reply.",
+                          })
+                        )
+                          return;
                         createComment.mutate(
                           { content: replyContent, parentId: replyTarget.id },
                           {
@@ -358,7 +410,9 @@ const ThreadDetailClient = ({
                               toast.success("REPLY_TRANSMITTED");
                             },
                             onError: (err) =>
-                              toast.error("TRANSMIT_FAILED", { description: err.message }),
+                              toast.error("TRANSMIT_FAILED", {
+                                description: err.message,
+                              }),
                           },
                         );
                       }}
@@ -374,12 +428,20 @@ const ThreadDetailClient = ({
                 <button
                   className="hover:text-primary"
                   onClick={() => {
-                    if (!requireAuth({ toast: true, description: "Authenticate to reply." })) return;
+                    if (
+                      !requireAuth({
+                        toast: true,
+                        description: "Authenticate to reply.",
+                      })
+                    )
+                      return;
                     setReplyTarget({
                       id: comment.id,
                       author: comment.author?.username || "@unknown",
                     });
-                    setReplyContent(`@${(comment.author?.username || "@unknown").replace("@", "")} `);
+                    setReplyContent(
+                      `@${(comment.author?.username || "@unknown").replace("@", "")} `,
+                    );
                   }}
                 >
                   REPLY
@@ -411,7 +473,21 @@ const ThreadDetailClient = ({
                   <p className="text-sm text-foreground/85 leading-relaxed">
                     {reply.content}
                   </p>
-
+                  <div className="flex items-center gap-2 text-xs font-mono">
+                    <button
+                      onClick={() => handleVoteComment(reply.id, 1)}
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <ThumbsUp className="h-3 w-3" />
+                    </button>
+                    <span className="text-primary">{reply.upvotes}</span>
+                    <button
+                      onClick={() => handleVoteComment(reply.id, -1)}
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <ThumbsDown className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
