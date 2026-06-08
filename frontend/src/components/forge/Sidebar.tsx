@@ -7,11 +7,11 @@ import {
   MessagesSquare,
   Shapes,
   BookOpen,
-  HelpCircle,
-  Archive,
   Plus,
   ChevronLeft,
   ChevronRight,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth-store";
+import { useSignout } from "@/hooks/use-auth";
 
 const STORAGE_KEY = "midnight-forge-sidebar";
 
@@ -28,11 +30,6 @@ const items = [
   { to: "/thread/architectural-shift", label: "Discussions", icon: MessagesSquare },
   { to: "/profile", label: "Categories", icon: Shapes },
   { to: "/settings", label: "Documentation", icon: BookOpen },
-];
-
-const footerItems = [
-  { to: "/settings", label: "Support", icon: HelpCircle },
-  { to: "/settings", label: "Archive", icon: Archive },
 ];
 
 export const Sidebar = ({ showNewEntry = false }: { showNewEntry?: boolean }) => {
@@ -48,6 +45,16 @@ export const Sidebar = ({ showNewEntry = false }: { showNewEntry?: boolean }) =>
       const next = !prev;
       localStorage.setItem(STORAGE_KEY, String(next));
       return next;
+    });
+  };
+
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const signout = useSignout();
+
+  const handleSignout = () => {
+    signout.mutate(undefined, {
+      onSuccess: () => window.location.href = "/",
     });
   };
 
@@ -129,33 +136,56 @@ export const Sidebar = ({ showNewEntry = false }: { showNewEntry?: boolean }) =>
       </nav>
 
       <div className="p-3 border-t border-border/60 space-y-1">
-        {footerItems.map((item) => {
-          const link = (
+        {isAuthenticated && user ? (
+          <>
             <ActiveLink
-              key={item.label}
-              href={item.to}
+              href="/profile"
               className={cn(
-                "flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-sm transition-colors",
+                "flex items-center gap-3 px-3 py-2 text-sm text-sidebar-foreground hover:text-foreground rounded-sm transition-colors",
                 collapsed && "justify-center px-0",
               )}
             >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
+              <div className="h-6 w-6 rounded-sm bg-secondary border border-border grid place-items-center text-[10px] font-bold text-primary shrink-0">
+                {user.username.replace("@", "").slice(0, 2).toUpperCase()}
+              </div>
+              {!collapsed && (
+                <span className="truncate">{user.username}</span>
+              )}
             </ActiveLink>
-          );
-
-          if (collapsed) {
-            return (
-              <Tooltip key={item.label} delayDuration={300}>
-                <TooltipTrigger asChild>{link}</TooltipTrigger>
-                <TooltipContent side="right" className="text-xs">
-                  {item.label}
-                </TooltipContent>
+            {collapsed ? (
+              <Tooltip delayDuration={300}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleSignout}
+                    className="flex items-center justify-center px-3 py-2 w-full text-sm text-muted-foreground hover:text-destructive rounded-sm transition-colors"
+                  >
+                    <LogOut className="h-4 w-4 shrink-0" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">Log Out</TooltipContent>
               </Tooltip>
-            );
-          }
-          return link;
-        })}
+            ) : (
+              <button
+                onClick={handleSignout}
+                className="flex items-center gap-3 px-3 py-2 w-full text-sm text-muted-foreground hover:text-destructive rounded-sm transition-colors"
+              >
+                <LogOut className="h-4 w-4 shrink-0" />
+                <span>Log Out</span>
+              </button>
+            )}
+          </>
+        ) : (
+          <ActiveLink
+            href="/login?redirect=/"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-sm transition-colors",
+              collapsed && "justify-center px-0",
+            )}
+          >
+            <LogIn className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>Log In</span>}
+          </ActiveLink>
+        )}
       </div>
     </aside>
   );
