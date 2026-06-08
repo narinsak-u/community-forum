@@ -343,20 +343,23 @@ const ThreadDetailClient = ({
                   </div>
                 </div>
                 {/*votes*/}
-                <div className="flex items-center gap-2 text-sm font-mono">
-                  <button
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border hover:border-primary hover:text-primary rounded-sm h-7 px-2 text-[10px]"
                     onClick={() => handleVoteComment(comment.id, 1)}
-                    className="text-muted-foreground hover:text-primary transition-colors"
                   >
-                    <ThumbsUp className="h-3.5 w-3.5" />
-                  </button>
-                  <span className="text-primary">{comment.upvotes}</span>
-                  <button
+                    <ThumbsUp className="h-3 w-3 mr-1" /> {comment.upvotes}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border hover:border-primary hover:text-primary rounded-sm h-7 px-2 text-[10px]"
                     onClick={() => handleVoteComment(comment.id, -1)}
-                    className="text-muted-foreground hover:text-primary transition-colors"
                   >
-                    <ThumbsDown className="h-3.5 w-3.5" />
-                  </button>
+                    <ThumbsDown className="h-3 w-3" />
+                  </Button>
                 </div>
               </div>
               <p className="text-xs text-foreground/85 leading-relaxed">
@@ -473,20 +476,23 @@ const ThreadDetailClient = ({
                   <p className="text-sm text-foreground/85 leading-relaxed">
                     {reply.content}
                   </p>
-                  <div className="flex items-center gap-2 text-xs font-mono">
-                    <button
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-border hover:border-primary hover:text-primary rounded-sm h-6 px-1.5 text-[9px]"
                       onClick={() => handleVoteComment(reply.id, 1)}
-                      className="text-muted-foreground hover:text-primary transition-colors"
                     >
-                      <ThumbsUp className="h-3 w-3" />
-                    </button>
-                    <span className="text-primary">{reply.upvotes}</span>
-                    <button
+                      <ThumbsUp className="h-2.5 w-2.5 mr-0.5" /> {reply.upvotes}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-border hover:border-primary hover:text-primary rounded-sm h-6 px-1.5 text-[9px]"
                       onClick={() => handleVoteComment(reply.id, -1)}
-                      className="text-muted-foreground hover:text-primary transition-colors"
                     >
-                      <ThumbsDown className="h-3 w-3" />
-                    </button>
+                      <ThumbsDown className="h-2.5 w-2.5" />
+                    </Button>
                   </div>
                 </div>
               ))}
