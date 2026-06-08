@@ -1,24 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { SectionLabel } from "@/components/forge/SectionLabel";
+import { useState, startTransition } from "react";
 import { ActiveLink } from "@/components/ActiveLink";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, MessageCircle, Filter, LayoutGrid } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useThreads, useFeaturedThread, useTrendingThreads } from "@/hooks/use-threads";
 import type { ThreadItem, ThreadDetail } from "@/lib/mock-data";
-
-function timeAgo(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  if (hours < 1) return "JUST NOW";
-  if (hours < 24) return hours + "H AGO";
-  const days = Math.floor(hours / 24);
-  return days + "D AGO";
-}
+import { timeAgo } from "@/lib/utils";
 
 interface HomeClientProps {
   initialFeatured: ThreadDetail | null;
@@ -143,9 +132,11 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
               <button
                 key={tab}
                 onClick={() => {
-                  setActiveTab(i);
-                  setSort(i === 0 ? "latest" : "votes");
-                  setPage(1);
+                  startTransition(() => {
+                    setActiveTab(i);
+                    setSort(i === 0 ? "latest" : "votes");
+                    setPage(1);
+                  });
                 }}
                 className={`pb-3 text-xs uppercase tracking-[0.18em] transition-colors border-b-2 ${
                   i === activeTab ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"
@@ -214,7 +205,7 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
         {threadData?.pagination && (
           <div className="flex items-center justify-center gap-2 pt-4">
             <button
-              onClick={() => setPage((p: number) => Math.max(1, p - 1))}
+              onClick={() => startTransition(() => setPage((p: number) => Math.max(1, p - 1)))}
               disabled={page <= 1}
               className="px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground border border-border rounded-sm hover:border-primary/40 disabled:opacity-40"
             >
@@ -226,7 +217,7 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
             ).map((p) => (
               <button
                 key={p}
-                onClick={() => setPage(p)}
+                onClick={() => startTransition(() => setPage(p))}
                 className={`h-8 w-10 text-xs font-mono rounded-sm border ${
                   p === page
                     ? "bg-primary text-primary-foreground border-primary"
@@ -240,7 +231,7 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
               <>
                 <span className="text-muted-foreground">...</span>
                 <button
-                  onClick={() => setPage(threadData.pagination.totalPages)}
+                  onClick={() => startTransition(() => setPage(threadData.pagination.totalPages))}
                   className="h-8 w-10 text-xs font-mono rounded-sm border border-border text-muted-foreground hover:border-primary/40"
                 >
                   {String(threadData.pagination.totalPages).padStart(2, "0")}
@@ -248,7 +239,7 @@ const HomeClient = ({ initialFeatured, initialTrending, initialThreads }: HomeCl
               </>
             )}
             <button
-              onClick={() => setPage((p: number) => Math.min(threadData.pagination.totalPages, p + 1))}
+              onClick={() => startTransition(() => setPage((p: number) => Math.min(threadData.pagination.totalPages, p + 1)))}
               disabled={page >= threadData.pagination.totalPages}
               className="px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground border border-border rounded-sm hover:border-primary/40 disabled:opacity-40"
             >

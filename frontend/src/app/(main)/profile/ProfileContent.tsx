@@ -6,17 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FileText as FileIcon, Globe, Lock, Plus } from "lucide-react";
 import { useUserProfile, useUserThreads } from "@/hooks/use-user";
 import Link from "next/link";
-
-function timeAgo(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  if (hours < 1) return "JUST NOW";
-  if (hours < 24) return hours + "H AGO";
-  const days = Math.floor(hours / 24);
-  return days + "D AGO";
-}
+import { timeAgo } from "@/lib/utils";
 
 const vaultItems = [
   {

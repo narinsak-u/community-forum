@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { ThreadDetail, MOCK_FEATURED } from "@/lib/mock-data";
+import type { ThreadDetail } from "@/lib/mock-data";
+import { MOCK_FEATURED } from "@/lib/mock-data";
 
 export function useThread(slug: string) {
   return useQuery({

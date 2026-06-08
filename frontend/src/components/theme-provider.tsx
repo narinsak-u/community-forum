@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState } from "react";
 
 type Theme = "dark" | "light";
 
@@ -16,10 +16,15 @@ const STORAGE_KEY = "midnight-forge-theme";
 function getInitialTheme(): Theme {
   if (typeof window === "undefined") return "dark";
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === "dark" || stored === "light") return stored;
-  return window.matchMedia("(prefers-color-scheme: light)").matches
+  if (stored === "dark" || stored === "light") {
+    applyTheme(stored);
+    return stored;
+  }
+  const preferred = window.matchMedia("(prefers-color-scheme: light)").matches
     ? "light"
     : "dark";
+  applyTheme(preferred);
+  return preferred;
 }
 
 function applyTheme(theme: Theme) {
@@ -27,13 +32,7 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
-
-  useEffect(() => {
-    const initial = getInitialTheme();
-    setTheme(initial);
-    applyTheme(initial);
-  }, []);
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
 
   const toggleTheme = () => {
     setTheme((prev) => {

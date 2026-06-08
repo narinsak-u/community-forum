@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { UserProfile, MOCK_USER, ThreadsResponse } from "@/lib/mock-data";
+import type { UserProfile, ThreadsResponse } from "@/lib/mock-data";
+import { MOCK_USER } from "@/lib/mock-data";
 
 interface UserResponse {
   user: UserProfile;

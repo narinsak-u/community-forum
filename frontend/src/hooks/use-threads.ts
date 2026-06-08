@@ -1,13 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import {
-  ThreadItem,
-  ThreadDetail,
-  ThreadsResponse,
-  MOCK_TRENDING,
-  MOCK_THREADS,
-  MOCK_FEATURED,
-} from "@/lib/mock-data";
+import type { ThreadItem, ThreadDetail, ThreadsResponse } from "@/lib/mock-data";
+import { MOCK_TRENDING, MOCK_THREADS, MOCK_FEATURED } from "@/lib/mock-data";
 
 export function useTrendingThreads() {
   return useQuery({
