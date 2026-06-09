@@ -71,7 +71,7 @@ function LoginForm() {
       );
     } else {
       signin.mutate(
-        { login: username, password },
+        { login: email, password },
         {
           onSuccess: () => {
             toast.success("SESSION_INITIATED", {
@@ -191,37 +191,39 @@ function LoginForm() {
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label className="terminal-label block">USER_IDENTITY</label>
+              {mode === "signup" && (
+                <div className="animate-fade-up">
+                  <label className="terminal-label block">USER_IDENTITY</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/70" />
+                    <Input
+                      required
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Architect_Name"
+                      className="pl-10 h-11 bg-transparent border-0 border-b border-border/80 rounded-none focus-visible:ring-0 focus-visible:border-primary text-foreground"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 animate-fade-up">
+              <label className="terminal-label block">RELAY_ADDRESS</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/70" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/70" />
                 <Input
                   required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Architect_Name"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="architect@forge.net"
                   className="pl-10 h-11 bg-transparent border-0 border-b border-border/80 rounded-none focus-visible:ring-0 focus-visible:border-primary text-foreground"
                 />
               </div>
             </div>
 
-            {mode === "signup" && (
-              <div className="space-y-2 animate-fade-up">
-                <label className="terminal-label block">RELAY_ADDRESS</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/70" />
-                  <Input
-                    required
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="architect@forge.net"
-                    className="pl-10 h-11 bg-transparent border-0 border-b border-border/80 rounded-none focus-visible:ring-0 focus-visible:border-primary text-foreground"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-2">
+            <div className="space-y-2 animate-fade-up">
               <label className="terminal-label block">ACCESS_CODE</label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/70" />
