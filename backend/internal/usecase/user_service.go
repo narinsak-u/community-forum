@@ -19,6 +19,11 @@ func NewUserService(repo ports.UserRepository) *UserService {
 	return &UserService{repo: repo}
 }
 
+// ListUsers retrieves all users from the repository.
+func (s *UserService) ListUsers(ctx context.Context) ([]*domain.User, error) {
+	return s.repo.List(ctx)
+}
+
 // GetUserProfile retrieves a user's domain entity by their username.
 func (s *UserService) GetUserProfile(ctx context.Context, username string) (*domain.User, error) {
 	// Directly call the repository to fetch the user.

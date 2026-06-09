@@ -10,7 +10,7 @@ interface UserResponse {
 export function useUserProfile(username: string) {
   return useQuery({
     queryKey: queryKeys.users.profile(username),
-    queryFn: () => api.get<UserResponse>("/users/" + username),
+    queryFn: () => api.get<UserResponse>("/users/" + username).then((r) => r.user),
     staleTime: 5 * 60 * 1000,
   });
 }

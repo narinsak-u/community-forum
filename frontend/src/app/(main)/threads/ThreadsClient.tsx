@@ -1,47 +1,74 @@
 "use client";
 
 import Image from "next/image";
-import { useState, startTransition } from "react";
+import { useState, startTransition, useMemo } from "react";
 import { ActiveLink } from "@/components/ActiveLink";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, MessageCircle, Filter, LayoutGrid } from "lucide-react";
+import { ChevronRight, MessageCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ThreadTabs } from "@/components/ThreadTabs";
 import {
   useThreads,
   useFeaturedThread,
   useTrendingThreads,
+  useMyThreads,
 } from "@/hooks/use-threads";
+import { useMe } from "@/hooks/use-auth";
 import type { ThreadItem, ThreadDetail } from "@/lib/mock-data";
 import { timeAgo } from "@/lib/utils";
 
-interface HomeClientProps {
+interface ThreadsClientProps {
   initialFeatured: ThreadDetail | null;
   initialTrending: { threads: ThreadItem[] } | null;
   initialThreads: { threads: ThreadItem[]; pagination: any } | null;
 }
 
-const HomeClient = ({
+const ThreadsClient = ({
   initialFeatured,
   initialTrending,
   initialThreads,
-}: HomeClientProps) => {
-  const [activeTab, setActiveTab] = useState(0);
+}: ThreadsClientProps) => {
+  const [activeTab, setActiveTab] = useState("latest");
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState("latest");
 
+  const { data: currentUser } = useMe();
   const featured = useFeaturedThread();
   const trending = useTrendingThreads();
-  const threads = useThreads(page, 5, sort);
+  const allThreads = useThreads(page, 5, sort);
+  const myThreads = useMyThreads(currentUser?.username ?? "", page, 5);
+  const threads = activeTab === "my-posts" ? myThreads : allThreads;
+
+  const tabs = useMemo(() => {
+    const items: { label: string; value: string; sort: string }[] = [
+      { label: "LATEST", value: "latest", sort: "latest" },
+      { label: "Most Popular", value: "popular", sort: "votes" },
+    ];
+    if (currentUser) {
+      items.push({ label: "MY POSTS", value: "my-posts", sort: "votes" });
+    }
+    return items;
+  }, [currentUser]);
+
+  const handleTabChange = (tab: (typeof tabs)[number]) => {
+    startTransition(() => {
+      setActiveTab(tab.value);
+      setSort(tab.sort);
+      setPage(1);
+    });
+  };
 
   const featuredThread = featured.data ?? initialFeatured;
   const trendingData =
     trending.data ??
     (initialTrending ? { threads: initialTrending.threads } : undefined);
   const threadData =
-    threads.data ??
-    (initialThreads
-      ? { ...initialThreads, isEmpty: !initialThreads.threads?.length }
-      : undefined);
+    activeTab !== "my-posts"
+      ? (threads.data ??
+        (initialThreads
+          ? { ...initialThreads, isEmpty: !initialThreads.threads?.length }
+          : undefined))
+      : threads.data;
 
   const featuredSlug = featuredThread?.slug || "architectural-shift";
   const firstTag = featuredThread?.tags?.[0]?.name || "System Core";
@@ -60,7 +87,7 @@ const HomeClient = ({
           </h1>
         </div>
         <p className="text-sm text-muted-foreground tracking-wide font-mono">
-          Synchronized with terminal.access.level.4
+          Synchronized with terminal
         </p>
       </section>
 
@@ -158,96 +185,105 @@ const HomeClient = ({
       </section>
 
       <section className="space-y-4">
-        <div className="flex items-center justify-between border-b border-border/60">
-          <div className="flex gap-6">
-            {["LATEST", "UNSOLVED", "MY POSTS"].map((tab, i) => (
-              <button
-                key={tab}
-                onClick={() => {
-                  startTransition(() => {
-                    setActiveTab(i);
-                    setSort(i === 0 ? "latest" : "votes");
-                    setPage(1);
-                  });
-                }}
-                className={`pb-3 text-xs uppercase tracking-[0.18em] transition-colors border-b-2 ${
-                  i === activeTab
-                    ? "text-primary border-primary"
-                    : "text-muted-foreground border-transparent hover:text-foreground"
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-2 pb-2">
-            <button className="h-8 w-8 grid place-items-center bg-secondary/60 border border-border rounded-sm hover:border-primary/40 transition-colors">
-              <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-            <button className="h-8 w-8 grid place-items-center bg-secondary/60 border border-border rounded-sm hover:border-primary/40 transition-colors">
-              <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-          </div>
-        </div>
+        <ThreadTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+        />
 
         {/* thread items*/}
         <div className="space-y-3">
-          {threads.isLoading && !initialThreads
-            ? Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-[88px] w-full rounded-sm" />
-              ))
-            : threadData?.threads?.map((thread: ThreadItem) => {
-                const tagName = thread.tags?.[0]?.name || "TECHNICAL";
-                const authorName = thread.author?.username || "@unknown";
-                return (
-                  <ActiveLink href={"/thread/" + thread.slug} key={thread.id}>
-                    <article className="panel p-4 md:p-5 grid grid-cols-[64px,1fr,auto] gap-4 md:gap-6 items-center hover:border-primary/40 transition-colors group">
-                      <div className="text-center">
-                        <div className="text-2xl font-display font-bold text-foreground">
-                          {thread.upvotes}
-                        </div>
-                        <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                          votes
-                        </div>
+          {threads.isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-[88px] w-full rounded-sm" />
+            ))
+          ) : !threadData?.threads?.length ? (
+            <p className="text-sm text-muted-foreground text-center py-12">
+              {activeTab === "my-posts"
+                ? "You haven't posted yet"
+                : "No threads yet"}
+            </p>
+          ) : (
+            threadData?.threads?.map((thread: ThreadItem) => {
+              const tagName = thread.tags?.[0]?.name || "TECHNICAL";
+              const authorName = thread.author?.username || "@unknown";
+              const href =
+                thread.status === "draft"
+                  ? `/thread/${thread.slug}/edit`
+                  : `/thread/${thread.slug}`;
+              return (
+                <ActiveLink href={href} key={thread.id}>
+                  <article className="panel p-4 md:p-5 grid grid-cols-[64px,1fr,auto] gap-4 md:gap-6 items-center hover:border-primary/40 transition-colors group">
+                    <div className="text-center">
+                      <div className="text-2xl font-display font-bold text-foreground">
+                        {thread.upvotes}
                       </div>
-                      <div className="space-y-2 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge className="bg-primary/10 text-primary border border-primary/30 rounded-sm uppercase text-[10px] tracking-[0.18em]">
-                            {tagName}
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                        votes
+                      </div>
+                    </div>
+                    <div className="space-y-2 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className="bg-primary/10 text-primary border border-primary/30 rounded-sm uppercase text-[10px] tracking-[0.18em]">
+                          {tagName}
+                        </Badge>
+                        {thread.status === "draft" && (
+                          <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-sm uppercase text-[10px] tracking-[0.18em]">
+                            DRAFTED
                           </Badge>
-                          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                            Posted by{" "}
-                            <span className="text-primary/80">
-                              {authorName}
-                            </span>{" "}
-                            &middot; {timeAgo(thread.created_at)}
-                          </span>
-                        </div>
-                        <h3 className="text-base md:text-lg font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                          {thread.title}
-                        </h3>
+                        )}
+                        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                          Posted by{" "}
+                          <span className="text-primary/80">{authorName}</span>{" "}
+                          &middot; {timeAgo(thread.created_at)}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-4 text-muted-foreground">
-                        <div className="hidden md:flex -space-x-2">
-                          {[...Array(3)].map((_, j) => (
+                      <h3 className="text-base md:text-lg font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                        {thread.title}
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-4 text-muted-foreground">
+                      <div className="hidden md:flex -space-x-2">
+                        {thread.recent_commenters
+                          ?.slice(0, 3)
+                          .map((commenter) => (
                             <div
-                              key={`avatar-${j}`}
-                              className="h-7 w-7 rounded-full bg-secondary border-2 border-card"
-                            />
+                              key={commenter.id}
+                              className="h-7 w-7 rounded-full bg-secondary border-2 border-card overflow-hidden"
+                              title={commenter.username}
+                            >
+                              {commenter.avatar ? (
+                                <Image
+                                  src={commenter.avatar}
+                                  alt={commenter.username}
+                                  width={28}
+                                  height={28}
+                                  className="object-cover w-full h-full"
+                                />
+                              ) : (
+                                <div className="w-full h-full grid place-items-center text-[10px] font-bold text-muted-foreground">
+                                  {commenter.username
+                                    .replace("@", "")
+                                    .slice(0, 2)
+                                    .toUpperCase()}
+                                </div>
+                              )}
+                            </div>
                           ))}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <MessageCircle className="h-4 w-4" />
-                          <span className="text-sm font-mono">
-                            {thread.replies_count}
-                          </span>
-                        </div>
-                        <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                       </div>
-                    </article>
-                  </ActiveLink>
-                );
-              })}
+                      <div className="flex items-center gap-1.5">
+                        <MessageCircle className="h-4 w-4" />
+                        <span className="text-sm font-mono">
+                          {thread.replies_count}
+                        </span>
+                      </div>
+                      <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                    </div>
+                  </article>
+                </ActiveLink>
+              );
+            })
+          )}
         </div>
 
         {threadData?.pagination && (
@@ -314,4 +350,4 @@ const HomeClient = ({
   );
 };
 
-export default HomeClient;
+export default ThreadsClient;

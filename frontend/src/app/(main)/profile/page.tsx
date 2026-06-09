@@ -1,15 +1,21 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRequireAuth } from "@/hooks/use-require-auth";
-import { ProfileContent } from "./ProfileContent";
+import { useRouter } from "next/navigation";
+import { useMe } from "@/hooks/use-auth";
 
 export default function MyProfilePage() {
-  const { requireAuth } = useRequireAuth();
+  const router = useRouter();
+  const { data: currentUser, isLoading } = useMe();
 
   useEffect(() => {
-    requireAuth({ redirect: "/profile" });
-  }, [requireAuth]);
+    if (isLoading) return;
+    if (currentUser?.username) {
+      router.replace("/profile/" + currentUser.username);
+    } else {
+      router.replace("/login?redirect=/profile");
+    }
+  }, [currentUser, isLoading, router]);
 
-  return <ProfileContent />;
+  return null;
 }

@@ -71,13 +71,13 @@ function LoginForm() {
       );
     } else {
       signin.mutate(
-        { login: username, password },
+        { login: email, password },
         {
           onSuccess: () => {
             toast.success("SESSION_INITIATED", {
               description: "Handshake complete. Routing to nexus...",
             });
-            setTimeout(() => router.push("/"), 600);
+            setTimeout(() => router.push("/threads"), 600);
           },
           onError: (err) => {
             toast.error("AUTH_FAILED", { description: err.message });
@@ -99,14 +99,14 @@ function LoginForm() {
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-8 py-6">
         <button
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/threads")}
           className="flex items-center gap-3 group"
         >
           <div className="h-10 w-10 grid place-items-center bg-gradient-signal rounded-sm font-display font-bold text-xl text-primary-foreground transition-transform group-hover:-rotate-6">
             M
           </div>
           <div className="font-display font-bold text-xl tracking-wide">
-            MIDNIGHT <span className="text-primary">FORGE</span>
+            THE LANDS <span className="text-primary">BETWEEN</span>
           </div>
         </button>
         <div className="hidden md:flex items-center gap-8 text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono">
@@ -191,37 +191,39 @@ function LoginForm() {
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label className="terminal-label block">USER_IDENTITY</label>
+              {mode === "signup" && (
+                <div className="animate-fade-up">
+                  <label className="terminal-label block">USER_IDENTITY</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/70" />
+                    <Input
+                      required
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Architect_Name"
+                      className="pl-10 h-11 bg-transparent border-0 border-b border-border/80 rounded-none focus-visible:ring-0 focus-visible:border-primary text-foreground"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 animate-fade-up">
+              <label className="terminal-label block">RELAY_ADDRESS</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/70" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/70" />
                 <Input
                   required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Architect_Name"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="architect@forge.net"
                   className="pl-10 h-11 bg-transparent border-0 border-b border-border/80 rounded-none focus-visible:ring-0 focus-visible:border-primary text-foreground"
                 />
               </div>
             </div>
 
-            {mode === "signup" && (
-              <div className="space-y-2 animate-fade-up">
-                <label className="terminal-label block">RELAY_ADDRESS</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/70" />
-                  <Input
-                    required
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="architect@forge.net"
-                    className="pl-10 h-11 bg-transparent border-0 border-b border-border/80 rounded-none focus-visible:ring-0 focus-visible:border-primary text-foreground"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-2">
+            <div className="space-y-2 animate-fade-up">
               <label className="terminal-label block">ACCESS_CODE</label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/70" />
@@ -386,7 +388,7 @@ function LoginForm() {
           <span>Support</span>
         </div>
         <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">
-          © 2026 Midnight Forge // Encrypted Session
+          © 2026 The Lands Between // Encrypted Session
         </div>
       </footer>
     </div>

@@ -127,9 +127,12 @@ func (h *ThreadHandler) GetThreadHandler(c *fiber.Ctx) error {
 	}
 
 	if thread.Status != "published" {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Thread not found",
-		})
+		userID := h.SessionManager.GetUserID(c)
+		if userID == 0 || thread.AuthorID != userID {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "Thread not found",
+			})
+		}
 	}
 
 	resp := mapThreadToResponse(thread)
@@ -208,6 +211,15 @@ func (h *ThreadHandler) DeleteThreadHandler(c *fiber.Ctx) error {
 }
 
 func mapThreadToResponse(t *domain.Thread) fiber.Map {
+	recentCommenters := make([]fiber.Map, len(t.RecentCommenters))
+	for i, c := range t.RecentCommenters {
+		recentCommenters[i] = fiber.Map{
+			"id":       c.ID,
+			"username": c.Username,
+			"avatar":   c.Avatar,
+		}
+	}
+
 	return fiber.Map{
 		"id":            t.ID,
 		"title":         t.Title,
@@ -223,8 +235,9 @@ func mapThreadToResponse(t *domain.Thread) fiber.Map {
 			"username": t.Author.Username,
 			"avatar":   t.Author.Avatar,
 		},
-		"tags":       serializeTags(t.Tags),
-		"created_at": t.CreatedAt,
+		"tags":              serializeTags(t.Tags),
+		"created_at":        t.CreatedAt,
+		"recent_commenters": recentCommenters,
 	}
 }
 

@@ -5,17 +5,18 @@ import { ActiveLink } from "@/components/ActiveLink";
 import { Bell, Settings, Search, User, Sun, Moon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "@/components/theme-provider";
+import { useMe } from "@/hooks/use-auth";
 
 const navItems = [
-  { to: "/", label: "Nexus" },
-  { to: "/thread/architectural-shift", label: "Threads" },
-  { to: "/profile", label: "Network" },
-  { to: "/settings", label: "Terminal" },
+  { to: "/threads", label: "Threads" },
+  { to: "/network", label: "Network" },
 ];
 
 export const TopNav = () => {
   const [mounted, setMounted] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const { data: currentUser } = useMe();
 
   useEffect(() => setMounted(true), []);
 
@@ -30,8 +31,8 @@ export const TopNav = () => {
                 <div className="h-4 w-4 bg-background/30 rotate-45" />
               </div>
               <div>
-                <div className="text-sm font-bold text-foreground">
-                  Midnight Forge
+                <div className="text-sm font-bold text-foreground uppercase">
+                  Terminal
                 </div>
                 <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   Technical Forum
@@ -55,16 +56,32 @@ export const TopNav = () => {
           ))}
         </nav>
 
-        <div className="max-w-sm ml-auto relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            placeholder="TERMINAL_SEARCH..."
-            className="h-9 pl-9 bg-secondary/60 border-border/80 text-xs uppercase tracking-wider placeholder:text-muted-foreground/60 font-mono focus-visible:ring-primary/40"
-          />
+        <div className="ml-auto relative flex items-center">
+          <button
+            type="button"
+            onClick={() => setSearchOpen((o) => !o)}
+            className="h-9 w-9 grid place-items-center text-muted-foreground hover:text-primary transition-colors shrink-0"
+          >
+            <Search className="h-4 w-4" />
+          </button>
+          <div
+            className="overflow-hidden transition-all duration-300 ease-in-out"
+            style={{ width: searchOpen ? 280 : 0, opacity: searchOpen ? 1 : 0 }}
+          >
+            <Input
+              placeholder="TERMINAL_SEARCH..."
+              className="h-9 bg-secondary/60 border-border/80 text-xs uppercase tracking-wider placeholder:text-muted-foreground/60 font-mono focus-visible:ring-primary/40 ml-2"
+              autoFocus={searchOpen}
+              onBlur={() => setSearchOpen(false)}
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button type="button" className="h-9 w-9 grid place-items-center text-muted-foreground hover:text-primary transition-colors relative">
+          <button
+            type="button"
+            className="h-9 w-9 grid place-items-center text-muted-foreground hover:text-primary transition-colors relative"
+          >
             <Bell className="h-4 w-4" />
             <span className="absolute top-2 right-2 h-1.5 w-1.5 bg-primary rounded-full animate-pulse-signal" />
           </button>
@@ -75,7 +92,7 @@ export const TopNav = () => {
             <Settings className="h-4 w-4" />
           </ActiveLink>
           <ActiveLink
-            href="/profile"
+            href={currentUser?.username ? "/profile/" + currentUser.username : "/login?redirect=/profile"}
             className="h-9 w-9 grid place-items-center bg-secondary border border-border rounded-sm hover:border-primary transition-colors"
           >
             <User className="h-4 w-4 text-primary" />

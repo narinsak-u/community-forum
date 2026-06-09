@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useThread } from "@/hooks/use-thread";
 import { useVoteThread } from "@/hooks/use-votes";
 import { useRequireAuth } from "@/hooks/use-require-auth";
+import { useMe } from "@/hooks/use-auth";
 import { ThreadHeader } from "./ThreadHeader";
 import { CommentSection } from "./CommentSection";
 
@@ -32,6 +33,7 @@ const ThreadDetailClient = ({
   initialThread,
 }: ThreadDetailClientProps) => {
   const { data: thread, isLoading } = useThread(slug);
+  const { data: currentUser } = useMe();
   const voteThread = useVoteThread(slug);
   const { requireAuth } = useRequireAuth();
 
@@ -82,6 +84,9 @@ const ThreadDetailClient = ({
         repliesCount={currentThread?.replies_count || 0}
         upvotes={currentThread?.upvotes || 0}
         downvotes={currentThread?.downvotes || 0}
+        slug={slug}
+        authorId={author?.id}
+        currentUserId={currentUser?.id}
       />
 
       <div className="panel scanline relative overflow-hidden aspect-[2/1]">
@@ -182,15 +187,48 @@ const ThreadDetailClient = ({
           <div className="panel p-5 space-y-3">
             <SectionLabel>Participants</SectionLabel>
             <div className="flex flex-wrap gap-1">
-              {[...Array(5)].map((_, i) => (
-                <div
-                  key={`participant-${i}`}
-                  className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/40 to-primary-deep/30 border border-border"
-                />
-              ))}
-              <div className="h-8 w-8 rounded-full bg-secondary border border-border grid place-items-center text-[10px] font-mono text-primary">
-                +{currentThread?.replies_count || 0}
-              </div>
+              {(() => {
+                const authorMap = new Map<number, { id: number; username: string; avatar: string }>();
+                if (currentThread?.author) {
+                  authorMap.set(currentThread.author.id, currentThread.author);
+                }
+                const collectAuthors = (comments: any[]) => {
+                  for (const c of comments || []) {
+                    if (c.author && !authorMap.has(c.author.id)) {
+                      authorMap.set(c.author.id, c.author);
+                    }
+                    collectAuthors(c.replies);
+                  }
+                };
+                collectAuthors(currentThread?.comments || []);
+                const participants = Array.from(authorMap.values());
+                return participants.slice(0, 5).map((p) => (
+                  <div
+                    key={p.id}
+                    className="h-8 w-8 rounded-full bg-secondary border border-border overflow-hidden"
+                    title={p.username}
+                  >
+                    {p.avatar ? (
+                      <Image
+                        src={p.avatar}
+                        alt={p.username}
+                        width={32}
+                        height={32}
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <div className="w-full h-full grid place-items-center text-[10px] font-bold text-primary">
+                        {p.username.replace("@", "").slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                ));
+              })()}
+              {currentThread?.replies_count > 0 && (
+                <div className="h-8 w-8 rounded-full bg-secondary border border-border grid place-items-center text-[10px] font-mono text-primary">
+                  +{currentThread.replies_count}
+                </div>
+              )}
             </div>
           </div>
         </aside>

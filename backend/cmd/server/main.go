@@ -122,6 +122,7 @@ func main() {
 	api.Post("/comments/:id/vote", sessionManager.RequireAuth, voteHandler.VoteCommentHandler)
 
 	// User and Tag routes
+	api.Get("/users", userHandler.ListUsersHandler)
 	api.Get("/users/:username", userHandler.GetUserHandler)
 	api.Patch("/users/:username", sessionManager.RequireAuth, userHandler.UpdateUserHandler)
 	api.Get("/users/:username/threads", userHandler.GetUserThreadsHandler)

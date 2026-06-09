@@ -29,3 +29,15 @@ export function useThreads(page = 1, pageSize = 5, sort = "latest") {
     staleTime: 60 * 1000,
   });
 }
+
+export function useMyThreads(username: string, page = 1, pageSize = 5) {
+  return useQuery({
+    queryKey: [...queryKeys.users.threads(username), { page, pageSize }],
+    queryFn: () =>
+      api.get<ThreadsResponse>(
+        `/users/${username}/threads?page=${page}&pageSize=${pageSize}`
+      ),
+    staleTime: 60 * 1000,
+    enabled: !!username,
+  });
+}

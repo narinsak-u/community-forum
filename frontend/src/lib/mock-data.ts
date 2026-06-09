@@ -23,6 +23,7 @@ export interface ThreadItem {
   author: Author;
   tags: Tag[];
   created_at: string;
+  recent_commenters?: Author[];
 }
 
 export interface CommentItem {

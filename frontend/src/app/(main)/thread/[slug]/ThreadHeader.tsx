@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface ThreadHeaderProps {
@@ -10,6 +12,9 @@ interface ThreadHeaderProps {
   repliesCount: number;
   upvotes: number;
   downvotes: number;
+  slug?: string;
+  authorId?: number;
+  currentUserId?: number;
 }
 
 export function ThreadHeader({
@@ -22,6 +27,9 @@ export function ThreadHeader({
   repliesCount,
   upvotes,
   downvotes,
+  slug,
+  authorId,
+  currentUserId,
 }: ThreadHeaderProps) {
   const trustIndex =
     upvotes + downvotes > 0
@@ -35,6 +43,7 @@ export function ThreadHeader({
 
   return (
     <>
+      {/* breadcrumbs */}
       <nav className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
         <span>Discussion</span>
         <span>/</span>
@@ -43,6 +52,15 @@ export function ThreadHeader({
         <span className="text-primary">
           {title?.slice(0, 24) || "Thread"}...
         </span>
+        {slug && authorId && currentUserId === authorId && (
+          <Link
+            href={`/thread/${slug}/edit`}
+            className="ml-auto flex items-center gap-1 text-primary hover:text-primary-glow transition-colors"
+          >
+            <Pencil className="h-3 w-3" />
+            EDIT
+          </Link>
+        )}
       </nav>
 
       <header className="space-y-4">

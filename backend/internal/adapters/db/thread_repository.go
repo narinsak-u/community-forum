@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"time"
 
 	"community-forum/backend/internal/domain"
 	"community-forum/backend/internal/lib"
@@ -83,6 +82,10 @@ func (r *GORMThreadRepository) List(ctx context.Context, page, pageSize int, sor
 		threads[i] = *threadFromModel(&mThreads[i], r.db)
 	}
 
+	if err := r.loadRecentCommenters(ctx, threads); err != nil {
+		return nil, 0, err
+	}
+
 	return threads, total, nil
 }
 
@@ -116,19 +119,22 @@ func (r *GORMThreadRepository) ListByUser(ctx context.Context, username string, 
 		threads[i] = *threadFromModel(&mThreads[i], r.db)
 	}
 
+	if err := r.loadRecentCommenters(ctx, threads); err != nil {
+		return nil, 0, err
+	}
+
 	return threads, total, nil
 }
 
 func (r *GORMThreadRepository) GetFeatured(ctx context.Context) (*domain.Thread, error) {
 	var m models.Thread
-	oneWeekAgo := time.Now().Add(-7 * 24 * time.Hour)
 
 	err := r.db.WithContext(ctx).
 		Select(threadColumns+", "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = 1) AS upvotes, "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM votes WHERE votes.thread_id = threads.id AND votes.value = -1) AS downvotes, "+
 			"(SELECT COALESCE(COUNT(*), 0) FROM comments WHERE comments.thread_id = threads.id AND comments.parent_id IS NULL) AS replies_count").
-		Where("threads.status = ? AND threads.created_at >= ?", "published", oneWeekAgo).
+		Where("threads.status = ?", "published").
 		Order("(SELECT COALESCE(SUM(CASE WHEN value = 1 THEN 1 WHEN value = -1 THEN -1 ELSE 0 END), 0) FROM votes WHERE votes.thread_id = threads.id) DESC").
 		Preload("Author").
 		Preload("Tags").
@@ -138,7 +144,12 @@ func (r *GORMThreadRepository) GetFeatured(ctx context.Context) (*domain.Thread,
 		return nil, err
 	}
 
-	return threadFromModel(&m, r.db), nil
+	threads := []domain.Thread{*threadFromModel(&m, r.db)}
+	if err := r.loadRecentCommenters(ctx, threads); err != nil {
+		return nil, err
+	}
+
+	return &threads[0], nil
 }
 
 func (r *GORMThreadRepository) GetTrending(ctx context.Context) ([]domain.Thread, error) {
@@ -163,6 +174,10 @@ func (r *GORMThreadRepository) GetTrending(ctx context.Context) ([]domain.Thread
 	threads := make([]domain.Thread, len(mThreads))
 	for i := range mThreads {
 		threads[i] = *threadFromModel(&mThreads[i], r.db)
+	}
+
+	if err := r.loadRecentCommenters(ctx, threads); err != nil {
+		return nil, err
 	}
 
 	return threads, nil
@@ -230,6 +245,59 @@ func (r *GORMThreadRepository) IncrementViewCount(ctx context.Context, threadID 
 
 func (r *GORMThreadRepository) GenerateUniqueSlug(ctx context.Context, title string) (string, error) {
 	return lib.GenerateUniqueSlug(title, r.db, "threads", "slug")
+}
+
+type commentAuthorRow struct {
+	ThreadID uint
+	ID       uint
+	Username string
+	Avatar   string
+}
+
+func (r *GORMThreadRepository) loadRecentCommenters(ctx context.Context, threads []domain.Thread) error {
+	if len(threads) == 0 {
+		return nil
+	}
+
+	threadIDs := make([]uint, len(threads))
+	idToThread := make(map[uint]*domain.Thread, len(threads))
+	for i := range threads {
+		threadIDs[i] = threads[i].ID
+		idToThread[threads[i].ID] = &threads[i]
+	}
+
+	var rows []commentAuthorRow
+	if err := r.db.WithContext(ctx).
+		Table("comments").
+		Select("DISTINCT comments.thread_id, users.id, users.username, users.avatar").
+		Joins("JOIN users ON users.id = comments.author_id").
+		Where("comments.thread_id IN ?", threadIDs).
+		Scan(&rows).Error; err != nil {
+		return err
+	}
+
+	for _, row := range rows {
+		t, ok := idToThread[row.ThreadID]
+		if !ok {
+			continue
+		}
+		alreadyPresent := false
+		for _, existing := range t.RecentCommenters {
+			if existing.ID == row.ID {
+				alreadyPresent = true
+				break
+			}
+		}
+		if !alreadyPresent {
+			t.RecentCommenters = append(t.RecentCommenters, domain.User{
+				ID:       row.ID,
+				Username: row.Username,
+				Avatar:   row.Avatar,
+			})
+		}
+	}
+
+	return nil
 }
 
 func threadFromModel(m *models.Thread, db *gorm.DB) *domain.Thread {

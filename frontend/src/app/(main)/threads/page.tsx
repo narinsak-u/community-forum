@@ -1,7 +1,7 @@
-import HomeClient from "./HomeClient";
+import ThreadsClient from "./ThreadsClient";
 import { fetchJSON, apiUrl } from "@/lib/server-fetch";
 
-export default async function HomePage() {
+export default async function ThreadsPage() {
   const [featured, trending, threads] = await Promise.all([
     fetchJSON<any>(apiUrl("/threads/featured")),
     fetchJSON<any>(apiUrl("/threads/trending")),
@@ -9,7 +9,7 @@ export default async function HomePage() {
   ]);
 
   return (
-    <HomeClient
+    <ThreadsClient
       initialFeatured={featured}
       initialTrending={trending}
       initialThreads={threads}

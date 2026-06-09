@@ -36,11 +36,19 @@ func (m *mockAuthService) GetByID(ctx context.Context, id uint) (*domain.User, e
 
 type mockUserService struct {
 	getUserProfileFn func(ctx context.Context, username string) (*domain.User, error)
+	listUsersFn      func(ctx context.Context) ([]*domain.User, error)
 	updateProfileFn  func(ctx context.Context, userID uint, updates *domain.User) (*domain.User, error)
 }
 
 func (m *mockUserService) GetUserProfile(ctx context.Context, username string) (*domain.User, error) {
 	return m.getUserProfileFn(ctx, username)
+}
+
+func (m *mockUserService) ListUsers(ctx context.Context) ([]*domain.User, error) {
+	if m.listUsersFn != nil {
+		return m.listUsersFn(ctx)
+	}
+	return nil, nil
 }
 
 func (m *mockUserService) UpdateProfile(ctx context.Context, userID uint, updates *domain.User) (*domain.User, error) {
