@@ -17,17 +17,17 @@ import { useMe } from "@/hooks/use-auth";
 import type { ThreadItem, ThreadDetail } from "@/lib/mock-data";
 import { timeAgo } from "@/lib/utils";
 
-interface HomeClientProps {
+interface ThreadsClientProps {
   initialFeatured: ThreadDetail | null;
   initialTrending: { threads: ThreadItem[] } | null;
   initialThreads: { threads: ThreadItem[]; pagination: any } | null;
 }
 
-const HomeClient = ({
+const ThreadsClient = ({
   initialFeatured,
   initialTrending,
   initialThreads,
-}: HomeClientProps) => {
+}: ThreadsClientProps) => {
   const [activeTab, setActiveTab] = useState("latest");
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState("latest");
@@ -87,7 +87,7 @@ const HomeClient = ({
           </h1>
         </div>
         <p className="text-sm text-muted-foreground tracking-wide font-mono">
-          Synchronized with terminal.access.level.4
+          Synchronized with terminal
         </p>
       </section>
 
@@ -350,4 +350,4 @@ const HomeClient = ({
   );
 };
 
-export default HomeClient;
+export default ThreadsClient;

@@ -20,7 +20,7 @@ export default function MainLayout({
             <span>Privacy</span>
             <span>Security</span>
           </div>
-          <div>© 2026 Midnight Forge // Encrypted Session</div>
+          <div>© 2026 The Lands Between // Encrypted Session</div>
         </div>
       </footer>
     </div>

@@ -5,17 +5,18 @@ import { ActiveLink } from "@/components/ActiveLink";
 import { Bell, Settings, Search, User, Sun, Moon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "@/components/theme-provider";
+import { useMe } from "@/hooks/use-auth";
 
 const navItems = [
-  { to: "/", label: "Threads" },
-  { to: "/profile", label: "Network" },
-  { to: "/settings", label: "Terminal" },
+  { to: "/threads", label: "Threads" },
+  { to: "/network", label: "Network" },
 ];
 
 export const TopNav = () => {
   const [mounted, setMounted] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const { data: currentUser } = useMe();
 
   useEffect(() => setMounted(true), []);
 
@@ -30,8 +31,8 @@ export const TopNav = () => {
                 <div className="h-4 w-4 bg-background/30 rotate-45" />
               </div>
               <div>
-                <div className="text-sm font-bold text-foreground">
-                  Midnight Forge
+                <div className="text-sm font-bold text-foreground uppercase">
+                  Terminal
                 </div>
                 <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   Technical Forum
@@ -91,7 +92,7 @@ export const TopNav = () => {
             <Settings className="h-4 w-4" />
           </ActiveLink>
           <ActiveLink
-            href="/profile"
+            href={currentUser?.username ? "/profile/" + currentUser.username : "/login?redirect=/profile"}
             className="h-9 w-9 grid place-items-center bg-secondary border border-border rounded-sm hover:border-primary transition-colors"
           >
             <User className="h-4 w-4 text-primary" />

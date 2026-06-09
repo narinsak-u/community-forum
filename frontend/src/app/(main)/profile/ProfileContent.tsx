@@ -84,7 +84,7 @@ export function ProfileContent({
           )}
         </div>
         <div className="space-y-3">
-          <h1 className="heading-display text-5xl text-foreground">
+          <h1 className="heading-display text-5xl text-foreground uppercase">
             {displayName}
           </h1>
           <div className="text-xs uppercase tracking-[0.2em] text-primary font-mono">

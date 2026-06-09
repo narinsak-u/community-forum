@@ -48,6 +48,14 @@ func (m *mockUserRepo) GetByUsername(ctx context.Context, username string) (*dom
 	return user, nil
 }
 
+func (m *mockUserRepo) List(ctx context.Context) ([]*domain.User, error) {
+	users := make([]*domain.User, 0, len(m.usersByID))
+	for _, u := range m.usersByID {
+		users = append(users, u)
+	}
+	return users, nil
+}
+
 func (m *mockUserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	user, ok := m.usersByEmail[email]
 	if !ok {

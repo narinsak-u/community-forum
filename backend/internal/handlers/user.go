@@ -48,6 +48,25 @@ func userResponse(user *domain.User) fiber.Map {
 	}
 }
 
+// ListUsersHandler returns a list of all registered users.
+func (h *UserHandler) ListUsersHandler(c *fiber.Ctx) error {
+	users, err := h.UserService.ListUsers(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to fetch users",
+		})
+	}
+
+	items := make([]fiber.Map, 0, len(users))
+	for _, u := range users {
+		items = append(items, userResponse(u))
+	}
+
+	return c.JSON(fiber.Map{
+		"users": items,
+	})
+}
+
 // GetUserHandler retrieves a user's profile by their username.
 func (h *UserHandler) GetUserHandler(c *fiber.Ctx) error {
 	// c.Params retrieves variables from the URL (e.g., /users/:username)

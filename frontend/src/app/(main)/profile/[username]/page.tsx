@@ -9,8 +9,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { username } = await params;
   return {
-    title: `${username} | Midnight Forge`,
-    description: `View ${username}'s profile and contributions on Midnight Forge.`,
+    title: `${username} | The Lands Between`,
+    description: `View ${username}'s profile and contributions on The Lands Between.`,
   };
 }
 

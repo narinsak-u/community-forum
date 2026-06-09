@@ -26,7 +26,7 @@ import { useSignout } from "@/hooks/use-auth";
 const STORAGE_KEY = "midnight-forge-sidebar";
 
 const items = [
-  { to: "/", label: "Dashboard", icon: LayoutGrid },
+  { to: "/threads", label: "Dashboard", icon: LayoutGrid },
   { to: "/thread/architectural-shift", label: "Discussions", icon: MessagesSquare },
   { to: "/profile", label: "Categories", icon: Shapes },
   { to: "/settings", label: "Documentation", icon: BookOpen },
@@ -54,7 +54,7 @@ export const Sidebar = ({ showNewEntry = false }: { showNewEntry?: boolean }) =>
 
   const handleSignout = () => {
     signout.mutate(undefined, {
-      onSuccess: () => window.location.href = "/",
+      onSuccess: () => window.location.href = "/threads",
     });
   };
 
@@ -140,7 +140,7 @@ export const Sidebar = ({ showNewEntry = false }: { showNewEntry?: boolean }) =>
         {isAuthenticated && user ? (
           <>
             <ActiveLink
-              href="/profile"
+              href={"/profile/" + user.username}
               className={cn(
                 "flex items-center gap-3 px-3 py-2 text-sm text-sidebar-foreground hover:text-foreground rounded-sm transition-colors",
                 collapsed && "justify-center px-0",
@@ -179,7 +179,7 @@ export const Sidebar = ({ showNewEntry = false }: { showNewEntry?: boolean }) =>
           </>
         ) : (
           <ActiveLink
-            href="/login?redirect=/"
+            href="/login?redirect=/threads"
             className={cn(
               "flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-sm transition-colors",
               collapsed && "justify-center px-0",

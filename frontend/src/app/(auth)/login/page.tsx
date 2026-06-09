@@ -77,7 +77,7 @@ function LoginForm() {
             toast.success("SESSION_INITIATED", {
               description: "Handshake complete. Routing to nexus...",
             });
-            setTimeout(() => router.push("/"), 600);
+            setTimeout(() => router.push("/threads"), 600);
           },
           onError: (err) => {
             toast.error("AUTH_FAILED", { description: err.message });
@@ -99,14 +99,14 @@ function LoginForm() {
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-8 py-6">
         <button
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/threads")}
           className="flex items-center gap-3 group"
         >
           <div className="h-10 w-10 grid place-items-center bg-gradient-signal rounded-sm font-display font-bold text-xl text-primary-foreground transition-transform group-hover:-rotate-6">
             M
           </div>
           <div className="font-display font-bold text-xl tracking-wide">
-            MIDNIGHT <span className="text-primary">FORGE</span>
+            THE LANDS <span className="text-primary">BETWEEN</span>
           </div>
         </button>
         <div className="hidden md:flex items-center gap-8 text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono">
@@ -388,7 +388,7 @@ function LoginForm() {
           <span>Support</span>
         </div>
         <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">
-          © 2026 Midnight Forge // Encrypted Session
+          © 2026 The Lands Between // Encrypted Session
         </div>
       </footer>
     </div>

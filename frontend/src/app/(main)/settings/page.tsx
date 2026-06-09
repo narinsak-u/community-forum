@@ -67,7 +67,7 @@ const Settings = () => {
           <div className="space-y-2">
             <label className="terminal-label">EMAIL ADDRESS</label>
             <Input
-              defaultValue={user?.email || "architect@midnight-forge.io"}
+              defaultValue={user?.email || "architect@the-lands-between.io"}
               className="bg-terminal border-border font-mono rounded-sm"
               disabled
             />
@@ -244,7 +244,7 @@ const Settings = () => {
               // PREVIEW_MODE: <span className="text-success">Active</span>
             </div>
             <div>
-              <span className="text-primary">root@midnight-forge:</span>
+              <span className="text-primary">root@lands-between:</span>
               <span className="text-success">~$</span> update --visuals
             </div>
             <div className="text-muted-foreground">

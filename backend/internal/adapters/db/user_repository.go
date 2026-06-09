@@ -64,6 +64,23 @@ func (r *GORMUserRepository) GetByUsername(ctx context.Context, username string)
 	return fromModel(&m)
 }
 
+// List retrieves all users from the database.
+func (r *GORMUserRepository) List(ctx context.Context) ([]*domain.User, error) {
+	var models []models.User
+	if err := r.db.WithContext(ctx).Find(&models).Error; err != nil {
+		return nil, err
+	}
+	users := make([]*domain.User, 0, len(models))
+	for i := range models {
+		u, err := fromModel(&models[i])
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, nil
+}
+
 // GetByEmail retrieves a user from the database by their email address.
 func (r *GORMUserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var m models.User

@@ -10,21 +10,21 @@ export async function generateMetadata({
   try {
     const thread = await fetchJSON<any>(apiUrl(`/threads/${slug}`));
     return {
-      title: `${thread?.title || "Thread"} | Midnight Forge`,
+      title: `${thread?.title || "Thread"} | The Lands Between`,
       description:
-        thread?.content?.slice(0, 160) || "View this thread on Midnight Forge.",
+        thread?.content?.slice(0, 160) || "View this thread on The Lands Between.",
       openGraph: {
         title: thread?.title || "Thread",
         description:
           thread?.content?.slice(0, 160) ||
-          "View this thread on Midnight Forge.",
+          "View this thread on The Lands Between.",
         type: "article",
       },
     };
   } catch {
     return {
-      title: "Thread | Midnight Forge",
-      description: "View this thread on Midnight Forge.",
+      title: "Thread | The Lands Between",
+      description: "View this thread on The Lands Between.",
     };
   }
 }

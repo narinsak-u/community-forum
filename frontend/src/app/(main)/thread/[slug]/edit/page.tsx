@@ -179,7 +179,7 @@ function EditEntryInner({ slug }: { slug: string }) {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => router.push(isDraft ? "/" : `/thread/${slug}`)}
+                onClick={() => router.push(isDraft ? "/threads" : `/thread/${slug}`)}
                 className="border-border text-muted-foreground hover:text-foreground rounded-sm uppercase tracking-[0.18em] text-xs"
               >
                 CANCEL
