@@ -68,6 +68,7 @@ func MigrateDB(db *gorm.DB) {
 		&models.Comment{},
 		&models.Tag{},
 		&models.Vote{},
+		&models.ChatMessage{},
 	); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
