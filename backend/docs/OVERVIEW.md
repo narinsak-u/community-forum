@@ -4,8 +4,7 @@
 >
 > **Important:** This project has been refactored from the original flat
 > `models/handlers/schemas` structure into a **Hexagonal Architecture**
-> (Ports and Adapters). The root `README.md` still shows the old structure;
-> this document reflects the current state. See
+> (Ports and Adapters). See
 > [`docs/BACKEND-IMPROVEMENT.md`](./BACKEND-IMPROVEMENT.md) for the rationale.
 
 ---
@@ -37,7 +36,8 @@ backend/
 │   │       ├── thread_repository.go
 │   │       ├── comment_repository.go
 │   │       ├── vote_repository.go
-│   │       └── tag_repository.go
+│   │       ├── tag_repository.go
+│   │       └── chat_repository.go
 │   ├── config/
 │   │   └── config.go                      # Env loading, DB init, auto-migrate, seed
 │   ├── domain/                            # Pure domain entities (no infra deps)
@@ -46,14 +46,16 @@ backend/
 │   │   ├── comment.go
 │   │   ├── tag.go
 │   │   ├── vote.go
+│   │   ├── chat_message.go
 │   │   └── errors.go
-│   ├── handlers/                          # Inbound adapters (Fiber HTTP)
+│   ├── handlers/                          # Inbound adapters (Fiber HTTP + WebSocket)
 │   │   ├── auth.go
 │   │   ├── thread.go
 │   │   ├── comment.go
 │   │   ├── vote.go
 │   │   ├── user.go
-│   │   └── tag.go
+│   │   ├── tag.go
+│   │   └── chat.go
 │   ├── lib/                               # Cross-cutting helpers
 │   │   ├── jwt.go
 │   │   └── slug.go
@@ -67,7 +69,8 @@ backend/
 │   │   ├── thread.go
 │   │   ├── comment.go
 │   │   ├── vote.go
-│   │   └── tag.go
+│   │   ├── tag.go
+│   │   └── chat.go
 │   ├── seed/
 │   │   └── seed.go                        # First-run demo data
 │   └── usecase/                           # Business logic (implements inbound ports)
@@ -76,7 +79,8 @@ backend/
 │       ├── thread_service.go
 │       ├── comment_service.go
 │       ├── vote_service.go
-│       └── tag_service.go
+│       ├── tag_service.go
+│       └── chat_service.go
 ├── tests/                                 # Black-box tests (mirror internal/ tree)
 │   ├── adapters/
 │   ├── domain/
@@ -98,7 +102,7 @@ backend/
 
 > **Note:** the original `migrations/` directory referenced in the root
 > `README.md` does not exist. Schema is created via GORM's `AutoMigrate` in
-> `internal/config/config.go:64-74`.
+> `internal/config/config.go:64-74` auto-migrates: User, Thread, Comment, Tag, Vote, ChatMessage.
 
 ---
 
@@ -112,7 +116,8 @@ backend/
 
 | Module | Version | Purpose |
 |---|---|---|
-| `github.com/gofiber/fiber/v2` | v2.52.0 | HTTP framework |
+| `github.com/gofiber/fiber/v2` | v2.52.6 | HTTP framework |
+| `github.com/gofiber/contrib/websocket` | v1.3.4 | WebSocket upgrade middleware for Fiber |
 | `gorm.io/gorm` | v1.25.0 | ORM |
 | `gorm.io/driver/postgres` | v1.5.0 | PostgreSQL driver for GORM |
 | `github.com/golang-jwt/jwt/v5` | v5.3.1 (indirect) | JWT signing/verification |
@@ -192,12 +197,14 @@ Two parallel struct hierarchies exist by design:
 | `Comment` | `models.go:74-92` | `domain/comment.go` | Reply inside a thread. Supports one level of nested replies via `ParentID` self-reference. |
 | `Tag` | `models.go:95-104` | `domain/tag.go` | Category label with a hex color. Many-to-many with threads. |
 | `Vote` | `models.go:107-125` | `domain/vote.go` | Upvote/downvote on either a thread or a comment (exactly one is non-null). |
+| `ChatMessage` | `models.go:127-135` | `domain/chat_message.go` | Chat message in the global discussions room. Has an Author FK. |
 
 ### Key relationships
 - `Thread.AuthorID` → `User.ID` (FK, indexed)
 - `Thread.Tags` ↔ `Tag` (m2m via implicit `thread_tags` join table)
 - `Comment.ThreadID` → `Thread.ID`
 - `Comment.ParentID` → `Comment.ID` (self-referencing; one level of nesting)
+- `ChatMessage.AuthorID` → `User.ID` (FK, indexed)
 - `Vote.UserID` + `Vote.ThreadID` composite unique index → one vote per user per thread
 - `Vote.UserID` + `Vote.CommentID` composite unique index → one vote per user per comment
 - All non-join tables use GORM soft deletes (`DeletedAt gorm.DeletedAt`).
