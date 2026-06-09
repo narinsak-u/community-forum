@@ -26,6 +26,7 @@ type UserRepository interface {
 // business operations that can be triggered by external actors (like HTTP handlers).
 type UserService interface {
 	GetUserProfile(ctx context.Context, username string) (*domain.User, error)
+	GetUserByID(ctx context.Context, id uint) (*domain.User, error)
 	ListUsers(ctx context.Context) ([]*domain.User, error)
 	UpdateProfile(ctx context.Context, userID uint, updates *domain.User) (*domain.User, error)
 }

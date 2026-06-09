@@ -30,6 +30,11 @@ func (s *UserService) GetUserProfile(ctx context.Context, username string) (*dom
 	return s.repo.GetByUsername(ctx, username)
 }
 
+// GetUserByID retrieves a user's domain entity by their ID.
+func (s *UserService) GetUserByID(ctx context.Context, id uint) (*domain.User, error) {
+	return s.repo.GetByID(ctx, id)
+}
+
 // UpdateProfile updates an existing user's profile information.
 func (s *UserService) UpdateProfile(ctx context.Context, userID uint, updates *domain.User) (*domain.User, error) {
 	// Step 1: Fetch the current user from the repository.
