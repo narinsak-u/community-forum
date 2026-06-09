@@ -127,9 +127,12 @@ func (h *ThreadHandler) GetThreadHandler(c *fiber.Ctx) error {
 	}
 
 	if thread.Status != "published" {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Thread not found",
-		})
+		userID := h.SessionManager.GetUserID(c)
+		if userID == 0 || thread.AuthorID != userID {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "Thread not found",
+			})
+		}
 	}
 
 	resp := mapThreadToResponse(thread)

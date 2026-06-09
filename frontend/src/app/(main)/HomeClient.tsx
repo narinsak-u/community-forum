@@ -50,7 +50,7 @@ const HomeClient = ({
     return items;
   }, [currentUser]);
 
-  const handleTabChange = (tab: typeof tabs[number]) => {
+  const handleTabChange = (tab: (typeof tabs)[number]) => {
     startTransition(() => {
       setActiveTab(tab.value);
       setSort(tab.sort);
@@ -65,9 +65,9 @@ const HomeClient = ({
   const threadData =
     activeTab !== "my-posts"
       ? (threads.data ??
-          (initialThreads
-            ? { ...initialThreads, isEmpty: !initialThreads.threads?.length }
-            : undefined))
+        (initialThreads
+          ? { ...initialThreads, isEmpty: !initialThreads.threads?.length }
+          : undefined))
       : threads.data;
 
   const featuredSlug = featuredThread?.slug || "architectural-shift";
@@ -185,52 +185,68 @@ const HomeClient = ({
       </section>
 
       <section className="space-y-4">
-        <ThreadTabs tabs={tabs} activeTab={activeTab} onTabChange={handleTabChange} />
+        <ThreadTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+        />
 
         {/* thread items*/}
         <div className="space-y-3">
-          {threads.isLoading
-            ? Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-[88px] w-full rounded-sm" />
-              ))
-            : !threadData?.threads?.length ? (
-              <p className="text-sm text-muted-foreground text-center py-12">
-                {activeTab === "my-posts" ? "You haven't posted yet" : "No threads yet"}
-              </p>
-            ) : threadData?.threads?.map((thread: ThreadItem) => {
-                const tagName = thread.tags?.[0]?.name || "TECHNICAL";
-                const authorName = thread.author?.username || "@unknown";
-                return (
-                  <ActiveLink href={"/thread/" + thread.slug} key={thread.id}>
-                    <article className="panel p-4 md:p-5 grid grid-cols-[64px,1fr,auto] gap-4 md:gap-6 items-center hover:border-primary/40 transition-colors group">
-                      <div className="text-center">
-                        <div className="text-2xl font-display font-bold text-foreground">
-                          {thread.upvotes}
-                        </div>
-                        <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                          votes
-                        </div>
+          {threads.isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-[88px] w-full rounded-sm" />
+            ))
+          ) : !threadData?.threads?.length ? (
+            <p className="text-sm text-muted-foreground text-center py-12">
+              {activeTab === "my-posts"
+                ? "You haven't posted yet"
+                : "No threads yet"}
+            </p>
+          ) : (
+            threadData?.threads?.map((thread: ThreadItem) => {
+              const tagName = thread.tags?.[0]?.name || "TECHNICAL";
+              const authorName = thread.author?.username || "@unknown";
+              const href =
+                thread.status === "draft"
+                  ? `/thread/${thread.slug}/edit`
+                  : `/thread/${thread.slug}`;
+              return (
+                <ActiveLink href={href} key={thread.id}>
+                  <article className="panel p-4 md:p-5 grid grid-cols-[64px,1fr,auto] gap-4 md:gap-6 items-center hover:border-primary/40 transition-colors group">
+                    <div className="text-center">
+                      <div className="text-2xl font-display font-bold text-foreground">
+                        {thread.upvotes}
                       </div>
-                      <div className="space-y-2 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge className="bg-primary/10 text-primary border border-primary/30 rounded-sm uppercase text-[10px] tracking-[0.18em]">
-                            {tagName}
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                        votes
+                      </div>
+                    </div>
+                    <div className="space-y-2 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className="bg-primary/10 text-primary border border-primary/30 rounded-sm uppercase text-[10px] tracking-[0.18em]">
+                          {tagName}
+                        </Badge>
+                        {thread.status === "draft" && (
+                          <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-sm uppercase text-[10px] tracking-[0.18em]">
+                            DRAFTED
                           </Badge>
-                          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                            Posted by{" "}
-                            <span className="text-primary/80">
-                              {authorName}
-                            </span>{" "}
-                            &middot; {timeAgo(thread.created_at)}
-                          </span>
-                        </div>
-                        <h3 className="text-base md:text-lg font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                          {thread.title}
-                        </h3>
+                        )}
+                        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                          Posted by{" "}
+                          <span className="text-primary/80">{authorName}</span>{" "}
+                          &middot; {timeAgo(thread.created_at)}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-4 text-muted-foreground">
-                        <div className="hidden md:flex -space-x-2">
-                          {thread.recent_commenters?.slice(0, 3).map((commenter) => (
+                      <h3 className="text-base md:text-lg font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                        {thread.title}
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-4 text-muted-foreground">
+                      <div className="hidden md:flex -space-x-2">
+                        {thread.recent_commenters
+                          ?.slice(0, 3)
+                          .map((commenter) => (
                             <div
                               key={commenter.id}
                               className="h-7 w-7 rounded-full bg-secondary border-2 border-card overflow-hidden"
@@ -254,19 +270,20 @@ const HomeClient = ({
                               )}
                             </div>
                           ))}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <MessageCircle className="h-4 w-4" />
-                          <span className="text-sm font-mono">
-                            {thread.replies_count}
-                          </span>
-                        </div>
-                        <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                       </div>
-                    </article>
-                  </ActiveLink>
-                );
-              })}
+                      <div className="flex items-center gap-1.5">
+                        <MessageCircle className="h-4 w-4" />
+                        <span className="text-sm font-mono">
+                          {thread.replies_count}
+                        </span>
+                      </div>
+                      <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                    </div>
+                  </article>
+                </ActiveLink>
+              );
+            })
+          )}
         </div>
 
         {threadData?.pagination && (
