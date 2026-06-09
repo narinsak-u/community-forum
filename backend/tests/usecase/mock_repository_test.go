@@ -3,6 +3,7 @@ package usecase_test
 import (
 	"context"
 	"errors"
+	"time"
 
 	"community-forum/backend/internal/domain"
 )
@@ -77,6 +78,60 @@ func (m *mockUserRepo) addUser(user *domain.User) {
 	m.usersByID[user.ID] = user
 	m.usersByUsername[user.Username] = user
 	m.usersByEmail[user.Email] = user
+}
+
+type mockChatRepo struct {
+	messages []domain.ChatMessage
+	nextID   uint
+	createFn func(msg *domain.ChatMessage) error
+}
+
+func newMockChatRepo() *mockChatRepo {
+	return &mockChatRepo{
+		messages: make([]domain.ChatMessage, 0),
+		nextID:   1,
+	}
+}
+
+func (m *mockChatRepo) Create(ctx context.Context, msg *domain.ChatMessage) error {
+	if m.createFn != nil {
+		return m.createFn(msg)
+	}
+	msg.ID = m.nextID
+	m.nextID++
+	msg.CreatedAt = time.Now()
+	msg.UpdatedAt = time.Now()
+	m.messages = append(m.messages, *msg)
+	return nil
+}
+
+func (m *mockChatRepo) GetRecent(ctx context.Context, limit int) ([]domain.ChatMessage, error) {
+	n := len(m.messages)
+	if n == 0 {
+		return []domain.ChatMessage{}, nil
+	}
+	start := n - limit
+	if start < 0 {
+		start = 0
+	}
+	result := make([]domain.ChatMessage, 0, n-start)
+	for i := start; i < n; i++ {
+		result = append(result, m.messages[i])
+	}
+	return result, nil
+}
+
+func (m *mockChatRepo) GetBefore(ctx context.Context, beforeID uint, limit int) ([]domain.ChatMessage, error) {
+	result := make([]domain.ChatMessage, 0)
+	for _, msg := range m.messages {
+		if msg.ID < beforeID {
+			result = append(result, msg)
+		}
+		if len(result) >= limit {
+			break
+		}
+	}
+	return result, nil
 }
 
 var errInternal = errors.New("internal error")
