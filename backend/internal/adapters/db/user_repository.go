@@ -1,5 +1,5 @@
 // Package db implements the database adapters for the application.
-// In Hexagonal Architecture, this is an "Outbound Adapter". It implements 
+// In Hexagonal Architecture, this is an "Outbound Adapter". It implements
 // an Outbound Port (UserRepository) using a specific technology (GORM/Postgres).
 package db
 

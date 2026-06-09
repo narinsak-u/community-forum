@@ -2,21 +2,22 @@ package handlers
 
 import (
 	"community-forum/backend/internal/middleware"
-	"community-forum/backend/internal/models"
-	"regexp"
-	"strings"
+	"community-forum/backend/internal/ports"
 
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 )
 
 // TagHandler handles operations related to thread categories (tags).
 type TagHandler struct {
-	DB *gorm.DB
+	TagService     ports.TagService
+	SessionManager *middleware.SessionManager
 }
 
-func NewTagHandler(db *gorm.DB) *TagHandler {
-	return &TagHandler{DB: db}
+func NewTagHandler(tagService ports.TagService, sessionManager *middleware.SessionManager) *TagHandler {
+	return &TagHandler{
+		TagService:     tagService,
+		SessionManager: sessionManager,
+	}
 }
 
 // CreateTagRequest defines the data needed to create a new tag.
@@ -25,13 +26,10 @@ type CreateTagRequest struct {
 	Color string `json:"color"` // Optional hex color code
 }
 
-// hexColorRegex verifies that a color string is a valid hex code (e.g., #FFFFFF).
-var hexColorRegex = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
-
 // ListTagsHandler retrieves all available tags, sorted alphabetically.
 func (h *TagHandler) ListTagsHandler(c *fiber.Ctx) error {
-	var tags []models.Tag
-	if result := h.DB.Order("name ASC").Find(&tags); result.Error != nil {
+	tags, err := h.TagService.ListTags(c.Context())
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to fetch tags",
 		})
@@ -54,14 +52,6 @@ func (h *TagHandler) ListTagsHandler(c *fiber.Ctx) error {
 
 // CreateTagHandler allows an admin to create a new tag.
 func (h *TagHandler) CreateTagHandler(c *fiber.Ctx) error {
-	// Security: Check if the user has the 'admin' role.
-	userRole := middleware.GetUserRole(c)
-	if userRole != "admin" {
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-			"error": "Admin access required",
-		})
-	}
-
 	var req CreateTagRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -69,44 +59,26 @@ func (h *TagHandler) CreateTagHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	// Clean up input: remove accidental spaces.
-	req.Name = strings.TrimSpace(req.Name)
-	req.Color = strings.TrimSpace(req.Color)
+	userRole := h.SessionManager.GetUserRole(c)
 
-	// Validation: Name length.
-	if len(req.Name) < 3 || len(req.Name) > 50 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Tag name must be between 3 and 50 characters",
-		})
-	}
-
-	// Validation: Color format (if provided).
-	if req.Color != "" && !hexColorRegex.MatchString(req.Color) {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid color format, must be a valid hex color (e.g. #6366f1)",
-		})
-	}
-
-	// Default color if none provided.
-	if req.Color == "" {
-		req.Color = "#6366f1"
-	}
-
-	// Check if the tag already exists (case-insensitive check).
-	var existing models.Tag
-	if h.DB.Where("LOWER(name) = ?", strings.ToLower(req.Name)).First(&existing).RowsAffected > 0 {
-		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-			"error": "Tag with this name already exists",
-		})
-	}
-
-	// Create the tag.
-	tag := models.Tag{
-		Name:  req.Name,
-		Color: req.Color,
-	}
-
-	if result := h.DB.Create(&tag); result.Error != nil {
+	tag, err := h.TagService.CreateTag(c.Context(), req.Name, req.Color, userRole)
+	if err != nil {
+		if err.Error() == "Admin access required" {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+		if err.Error() == "Tag name must be between 3 and 50 characters" ||
+			err.Error() == "Invalid color format, must be a valid hex color (e.g. #6366f1)" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+		if err.Error() == "Tag with this name already exists" {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to create tag",
 		})

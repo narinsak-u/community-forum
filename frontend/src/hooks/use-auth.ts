@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuthStore, User } from "@/stores/auth-store";
+import { queryKeys } from "./use-query-keys";
 
 export function useSignin() {
   const { setUser } = useAuthStore();
@@ -11,7 +12,7 @@ export function useSignin() {
       api.post<User>("/auth/signin", data),
     onSuccess: (user) => {
       setUser(user);
-      queryClient.invalidateQueries({ queryKey: ["me"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
     },
   });
 }
@@ -37,16 +38,10 @@ export function useSignout() {
 }
 
 export function useMe() {
-  const { setUser } = useAuthStore();
-
   return useQuery({
-    queryKey: ["me"],
+    queryKey: queryKeys.auth.me,
     queryFn: () => api.get<User>("/auth/me"),
     retry: false,
     staleTime: 5 * 60 * 1000,
-    select: (user) => {
-      setUser(user);
-      return user;
-    },
   });
 }

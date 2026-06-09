@@ -2,9 +2,9 @@
 package usecase
 
 import (
-	"context"
 	"community-forum/backend/internal/domain"
 	"community-forum/backend/internal/ports"
+	"context"
 )
 
 // UserService implements the ports.UserService interface.
@@ -49,6 +49,6 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uint, updates *d
 	if err := s.repo.Update(ctx, user); err != nil {
 		return nil, err
 	}
-	
+
 	return user, nil
 }

@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:8080") + "/api/v1";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080") + "/api/v1";
 
 class ApiError extends Error {
   status: number;
@@ -33,5 +33,19 @@ export const api = {
     request<T>(path, {
       method: "POST",
       body: data ? JSON.stringify(data) : undefined,
+    }),
+  patch: <T>(path: string, data?: unknown) =>
+    request<T>(path, {
+      method: "PATCH",
+      body: data ? JSON.stringify(data) : undefined,
+    }),
+  put: <T>(path: string, data?: unknown) =>
+    request<T>(path, {
+      method: "PUT",
+      body: data ? JSON.stringify(data) : undefined,
+    }),
+  delete: <T>(path: string) =>
+    request<T>(path, {
+      method: "DELETE",
     }),
 };
