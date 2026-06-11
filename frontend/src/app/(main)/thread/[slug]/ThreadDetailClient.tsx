@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMemo } from "react";
 import { SectionLabel } from "@/components/forge/SectionLabel";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,6 +60,23 @@ const ThreadDetailClient = ({
       },
     );
   };
+
+  const participants = useMemo(() => {
+    const authorMap = new Map<number, { id: number; username: string; avatar: string }>();
+    if (currentThread?.author) {
+      authorMap.set(currentThread.author.id, currentThread.author);
+    }
+    const collectAuthors = (comments: any[]) => {
+      for (const c of comments || []) {
+        if (c.author && !authorMap.has(c.author.id)) {
+          authorMap.set(c.author.id, c.author);
+        }
+        collectAuthors(c.replies);
+      }
+    };
+    collectAuthors(currentThread?.comments || []);
+    return Array.from(authorMap.values()).slice(0, 5);
+  }, [currentThread?.comments, currentThread?.author]);
 
   if (isLoading && !initialThread) {
     return (
@@ -186,22 +204,7 @@ const ThreadDetailClient = ({
           <div className="panel p-5 space-y-3">
             <SectionLabel>Participants</SectionLabel>
             <div className="flex flex-wrap gap-1">
-              {(() => {
-                const authorMap = new Map<number, { id: number; username: string; avatar: string }>();
-                if (currentThread?.author) {
-                  authorMap.set(currentThread.author.id, currentThread.author);
-                }
-                const collectAuthors = (comments: any[]) => {
-                  for (const c of comments || []) {
-                    if (c.author && !authorMap.has(c.author.id)) {
-                      authorMap.set(c.author.id, c.author);
-                    }
-                    collectAuthors(c.replies);
-                  }
-                };
-                collectAuthors(currentThread?.comments || []);
-                const participants = Array.from(authorMap.values());
-                return participants.slice(0, 5).map((p) => (
+              {participants.map((p) => (
                   <div
                     key={p.id}
                     className="h-8 w-8 rounded-full bg-secondary border border-border overflow-hidden"
