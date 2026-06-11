@@ -8,13 +8,10 @@ import { ThumbsUp, ThumbsDown, Image as ImageIcon, Code2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCreateComment } from "@/hooks/use-comments";
 import { useVoteComment } from "@/hooks/use-votes";
-import { useAuthStore } from "@/stores/auth-store";
+import { useMe } from "@/hooks/use-auth";
 import { useRequireAuth } from "@/hooks/use-require-auth";
 import type { CommentItem } from "@/lib/mock-data";
-
-function getInitials(username?: string): string {
-  return (username || "??").replace("@", "").slice(0, 2).toUpperCase();
-}
+import { getInitials } from "@/lib/utils";
 
 interface NestedCommentProps {
   comment: CommentItem;
@@ -73,7 +70,7 @@ interface CommentFormProps {
 
 function CommentForm({ slug, onSuccess }: CommentFormProps) {
   const [content, setContent] = useState("");
-  const user = useAuthStore((s) => s.user);
+  const { data: user } = useMe();
   const createComment = useCreateComment(slug);
   const { requireAuth } = useRequireAuth();
 
@@ -136,7 +133,7 @@ interface CommentSectionProps {
 export function CommentSection({ slug, comments, repliesCount }: CommentSectionProps) {
   const [replyTarget, setReplyTarget] = useState<{ id: number; author: string } | null>(null);
   const [replyContent, setReplyContent] = useState("");
-  const user = useAuthStore((s) => s.user);
+  const { data: user } = useMe();
   const { requireAuth } = useRequireAuth();
   const createComment = useCreateComment(slug);
 

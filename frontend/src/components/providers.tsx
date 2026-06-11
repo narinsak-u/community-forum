@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
-import { SessionLoader } from "@/components/session-loader";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -25,11 +24,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ThemeProvider>
-          <SessionLoader>
-            <Toaster />
-            <Sonner />
-            {children}
-          </SessionLoader>
+          <Toaster />
+          <Sonner />
+          {children}
         </ThemeProvider>
       </TooltipProvider>
     </QueryClientProvider>

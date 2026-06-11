@@ -7,16 +7,22 @@ import (
 
 	"community-forum/backend/internal/domain"
 	"community-forum/backend/internal/ports"
+
+	"github.com/microcosm-cc/bluemonday"
 )
 
 const DefaultChatLimit = 15
 
 type ChatService struct {
-	repo ports.ChatRepository
+	repo   ports.ChatRepository
+	policy *bluemonday.Policy
 }
 
 func NewChatService(repo ports.ChatRepository) *ChatService {
-	return &ChatService{repo: repo}
+	return &ChatService{
+		repo:   repo,
+		policy: bluemonday.StrictPolicy(),
+	}
 }
 
 func (s *ChatService) SendMessage(ctx context.Context, authorID uint, content string) (*domain.ChatMessage, error) {
@@ -26,6 +32,12 @@ func (s *ChatService) SendMessage(ctx context.Context, authorID uint, content st
 	}
 	if len(content) > 2000 {
 		return nil, errors.New("message content too long")
+	}
+
+	// Sanitize content to prevent XSS
+	content = s.policy.Sanitize(content)
+	if content == "" {
+		return nil, errors.New("message content invalid after sanitization")
 	}
 
 	msg := &domain.ChatMessage{

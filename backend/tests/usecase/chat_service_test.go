@@ -49,3 +49,23 @@ func TestChatService_GetMessagesBefore_ReturnsOlder(t *testing.T) {
 	require.Len(t, messages, 1)
 	assert.Equal(t, m1.Content, messages[0].Content)
 }
+
+func TestChatService_SendMessage_Sanitization(t *testing.T) {
+	mock := newMockChatRepo()
+	svc := usecase.NewChatService(mock)
+
+	// Test script stripping
+	msg, err := svc.SendMessage(context.Background(), 1, "<script>alert('xss')</script>Hello")
+	require.NoError(t, err)
+	assert.Equal(t, "Hello", msg.Content)
+
+	// Test HTML tag stripping (StrictPolicy strips all tags)
+	msg, err = svc.SendMessage(context.Background(), 1, "<b>Bold</b> and <i>Italic</i>")
+	require.NoError(t, err)
+	assert.Equal(t, "Bold and Italic", msg.Content)
+
+	// Test invalid content after sanitization
+	_, err = svc.SendMessage(context.Background(), 1, "<script></script>")
+	assert.Error(t, err)
+	assert.Equal(t, "message content invalid after sanitization", err.Error())
+}

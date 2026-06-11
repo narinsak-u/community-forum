@@ -20,8 +20,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/stores/auth-store";
-import { useSignout } from "@/hooks/use-auth";
+import { useMe, useSignout } from "@/hooks/use-auth";
 
 const STORAGE_KEY = "midnight-forge-sidebar";
 
@@ -48,8 +47,8 @@ export const Sidebar = ({ showNewEntry = false }: { showNewEntry?: boolean }) =>
     });
   };
 
-  const user = useAuthStore((s) => s.user);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { data: user } = useMe();
+  const isAuthenticated = !!user;
   const signout = useSignout();
 
   const handleSignout = () => {

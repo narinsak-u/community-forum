@@ -82,10 +82,17 @@ func (h *ChatHandler) HandleWebSocket(c *websocket.Conn) {
 	userID := claims.UserID
 	log.Printf("chat: user %d connected", userID)
 
-	profile, _ := h.UserService.GetUserByID(context.Background(), userID)
+	// Create a context tied to the connection lifecycle
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	profile, err := h.UserService.GetUserByID(ctx, userID)
 	displayName := ""
 	displayAvatar := ""
-	if profile != nil {
+	if err != nil {
+		log.Printf("chat: could not fetch profile for user %d: %v", userID, err)
+		displayName = "Guest"
+	} else if profile != nil {
 		displayName = profile.Username
 		displayAvatar = profile.Avatar
 	}
@@ -108,7 +115,7 @@ func (h *ChatHandler) HandleWebSocket(c *websocket.Conn) {
 		h.broadcast(wsOutgoing{Type: "user_joined", User: user})
 	}
 
-	recent, err := h.Service.GetRecentMessages(context.Background(), usecase.DefaultChatLimit)
+	recent, err := h.Service.GetRecentMessages(ctx, usecase.DefaultChatLimit)
 	if err != nil {
 		log.Printf("chat: GetRecentMessages error: %v", err)
 	}
@@ -168,14 +175,14 @@ func (h *ChatHandler) HandleWebSocket(c *websocket.Conn) {
 			}
 			lastMessageTime = time.Now()
 
-			chatMsg, err := h.Service.SendMessage(context.Background(), userID, msg.Content)
+			chatMsg, err := h.Service.SendMessage(ctx, userID, msg.Content)
 			if err != nil {
 				continue
 			}
 			h.broadcast(wsOutgoing{Type: "message", Message: chatMsg})
 
 		case "load_more":
-			older, err := h.Service.GetMessagesBefore(context.Background(), msg.Before, usecase.DefaultChatLimit)
+			older, err := h.Service.GetMessagesBefore(ctx, msg.Before, usecase.DefaultChatLimit)
 			if err != nil {
 				continue
 			}

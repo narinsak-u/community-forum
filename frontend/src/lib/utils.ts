@@ -18,3 +18,12 @@ export function timeAgo(dateStr: string): string {
   const days = Math.floor(hours / 24);
   return days + "D AGO";
 }
+
+export function getInitials(username?: string): string {
+  return (username || "??").replace("@", "").slice(0, 2).toUpperCase();
+}
+
+export function formatCount(n: number): string {
+  if (n >= 1000) return (n / 1000).toFixed(1) + "K";
+  return String(n);
+}

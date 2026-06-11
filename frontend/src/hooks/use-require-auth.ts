@@ -15,7 +15,7 @@ export function useRequireAuth() {
 
   const requireAuth = useCallback(
     (opts?: RequireAuthOptions): boolean => {
-      if (!isFetched) return true;
+      if (!isFetched) return false;
       if (data) return true;
 
       if (opts?.toast) {

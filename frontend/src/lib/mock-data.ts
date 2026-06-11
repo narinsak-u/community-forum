@@ -61,3 +61,14 @@ export interface UserProfile {
   stacks: string[];
   created_at: string;
 }
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  avatar: string;
+  bio: string;
+  role: string;
+  stacks?: string[];
+  created_at: string;
+}

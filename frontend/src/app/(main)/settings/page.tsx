@@ -13,7 +13,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuthStore } from "@/stores/auth-store";
+import { useMe } from "@/hooks/use-auth";
 import { useRequireAuth } from "@/hooks/use-require-auth";
 import { useUpdateProfile } from "@/hooks/use-user";
 
@@ -29,7 +29,7 @@ const Settings = () => {
     requireAuth({ redirect: "/settings" });
   }, [requireAuth]);
 
-  const user = useAuthStore((s) => s.user);
+  const { data: user } = useMe();
   const updateProfile = useUpdateProfile(user?.username || "");
 
   const handleCommit = () => {

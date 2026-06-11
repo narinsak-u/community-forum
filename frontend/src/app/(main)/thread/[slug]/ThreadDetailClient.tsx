@@ -19,6 +19,7 @@ import { useRequireAuth } from "@/hooks/use-require-auth";
 import { useMe } from "@/hooks/use-auth";
 import { ThreadHeader } from "./ThreadHeader";
 import { CommentSection } from "./CommentSection";
+import { getInitials } from "@/lib/utils";
 
 const QUOTE =
   "Precision is not just about speed; it's about predictable outcomes in a chaotic data environment.";
@@ -40,9 +41,7 @@ const ThreadDetailClient = ({
   const currentThread = thread || initialThread;
 
   const author = currentThread?.author;
-  const authorInitials = author?.username
-    ? author.username.replace("@", "").slice(0, 2).toUpperCase()
-    : "AL";
+  const authorInitials = getInitials(author?.username);
 
   const handleVote = (value: number) => {
     if (
