@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useAuthStore } from "@/stores/auth-store";
+import { useMe } from "./use-auth";
 
 interface RequireAuthOptions {
   redirect?: string;
@@ -10,12 +10,13 @@ interface RequireAuthOptions {
 }
 
 export function useRequireAuth() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { data, isFetched } = useMe();
   const router = useRouter();
 
   const requireAuth = useCallback(
     (opts?: RequireAuthOptions): boolean => {
-      if (isAuthenticated) return true;
+      if (!isFetched) return true;
+      if (data) return true;
 
       if (opts?.toast) {
         toast("SIGN_IN_REQUIRED", {
@@ -32,7 +33,7 @@ export function useRequireAuth() {
 
       return false;
     },
-    [isAuthenticated, router],
+    [data, isFetched, router],
   );
 
   return { requireAuth };

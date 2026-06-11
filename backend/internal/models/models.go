@@ -124,6 +124,16 @@ type Vote struct {
 	Value int8 `gorm:"default:0" json:"value"` // 1 for upvote, -1 for downvote, 0 for neutral
 }
 
+type ChatMessage struct {
+	ID        uint      `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+
+	Content  string `gorm:"type:text;not null" json:"content"`
+	AuthorID uint   `gorm:"index;not null" json:"author_id"`
+	Author   User   `gorm:"foreignKey:AuthorID" json:"author"`
+}
+
 // Upvotes counts all positive votes for a comment.
 func (c *Comment) Upvotes(db *gorm.DB) int64 {
 	var count int64

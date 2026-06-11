@@ -27,7 +27,7 @@ const STORAGE_KEY = "midnight-forge-sidebar";
 
 const items = [
   { to: "/threads", label: "Dashboard", icon: LayoutGrid },
-  { to: "/thread/architectural-shift", label: "Discussions", icon: MessagesSquare },
+  { to: "/discussions", label: "Discussions", icon: MessagesSquare },
   { to: "/profile", label: "Categories", icon: Shapes },
   { to: "/settings", label: "Documentation", icon: BookOpen },
 ];

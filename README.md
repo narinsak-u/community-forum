@@ -1,43 +1,39 @@
-# Community Forum
+# The Lands Between
 
-A full-stack community forum application with React frontend and Go backend.
+A full-stack community forum with real-time chat. React (Next.js) frontend + Go (Fiber) backend.
 
 ## Project Structure
 
 ```
-community-forum/
-├── frontend/          # React + TypeScript frontend
-└── backend/           # Go Fiber backend
+├── frontend/          # Next.js 15 + React 19 + TypeScript
+└── backend/           # Go 1.24 + Fiber + PostgreSQL
 ```
 
 ## Frontend
 
-**Tech Stack:**
-
-- React 18 + TypeScript
-- Vite (build tool)
-- Tailwind CSS
-- shadcn/ui components
-- TanStack Query (data fetching)
-- React Router v6
-- Zod (validation)
-- Bun (runtime)
+**Tech Stack:** Next.js 15, React 19, TypeScript, Tailwind CSS, shadcn/ui, TanStack Query
 
 **Pages:**
 
-- `/` - Home (thread list)
-- `/login` - Login/Signup
-- `/thread/:slug` - Thread detail
-- `/create` - Create new thread
-- `/profile` - User profile
-- `/settings` - Settings
+| Route | Description |
+|---|---|
+| `/` | Landing page |
+| `/threads` | Thread list (latest, popular, my posts) |
+| `/thread/[slug]` | Thread detail + comments |
+| `/thread/[slug]/edit` | Edit thread |
+| `/create` | New thread |
+| `/discussions` | Real-time group chat |
+| `/network` | User directory |
+| `/profile/[username]` | User profile |
+| `/settings` | Account settings |
+| `/login` | Sign in / Sign up |
 
 **Commands:**
 
 ```bash
 cd frontend
 bun install          # Install dependencies
-bun run dev          # Start dev server (port 8080)
+bun run dev          # Start dev server (port 3000/8080)
 bun run build        # Production build
 bun test             # Run tests
 bun run lint         # Run ESLint
@@ -45,53 +41,34 @@ bun run lint         # Run ESLint
 
 ## Backend
 
-**Tech Stack:**
+**Tech Stack:** Go 1.24, Fiber v2, WebSocket (gorilla/websocket), GORM, PostgreSQL 16
 
-- Go 1.24
-- Fiber (HTTP framework)
-- GORM (ORM)
-- PostgreSQL (database)
-- Docker + Docker Compose
+**Architecture:** Hexagonal (Ports and Adapters) — domain / ports / usecase / adapters / handlers
 
-**Structure:**
+**API Endpoints:**
 
-```
-backend/
-├── cmd/server/       # Entry point
-├── internal/
-│   ├── models/       # GORM models
-│   ├── handlers/    # HTTP handlers
-│   ├── schemas/     # Request/response types
-│   └── middleware/  # Custom middleware
-├── migrations/      # Database migrations
-└── docker-compose.yml
-```
-
-**Models:**
-
-- User
-- Thread
-- Comment
-- Tag
-- Vote
+| Category | Base Path | Auth |
+|---|---|---|
+| Auth | `/api/v1/auth/*` | Mixed |
+| Threads | `/api/v1/threads/*` | Mixed |
+| Comments | `/api/v1/threads/:slug/comments`, `/api/v1/comments/:id` | Required |
+| Votes | `/api/v1/threads/:slug/vote`, `/api/v1/comments/:id/vote` | Required |
+| Users | `/api/v1/users/*` | Mixed |
+| Tags | `/api/v1/tags` | Mixed |
+| Chat | `/ws/chat` (WebSocket) | Cookie |
 
 **Commands:**
 
 ```bash
 cd backend
-
-# Start PostgreSQL
-docker-compose up -d
-
-# Run server
-go run ./cmd/server
-
-# Build
-go build -o server ./cmd/server
+docker-compose up -d  # Start PostgreSQL
+go run ./cmd/server   # Start API (port 8080)
+go test ./...         # Run tests
 ```
 
-**Environment Variables:**
-Copy `.env.example` to `.env`:
+## Environment Variables
+
+### Backend (`.env`)
 
 ```env
 DB_HOST=localhost
@@ -101,30 +78,28 @@ DB_PASSWORD=postgres
 DB_NAME=community_forum
 DB_SSLMODE=disable
 PORT=8080
+JWT_SECRET=your-secret-here
 ```
 
-**API Endpoints:**
+### Frontend (`NEXT_PUBLIC_API_URL`)
 
-- `GET /` - Health check
-- `GET /health` - Health check
-- `GET /api/v1/threads` - List all threads
-- `GET /api/v1/threads/:slug` - Get thread by slug
+Set `NEXT_PUBLIC_API_URL=http://localhost:8080` (default) to point to the backend.
 
 ## Getting Started
 
-1. **Frontend:**
-
+1. **Start PostgreSQL:**
    ```bash
-   cd frontend
-   bun install
-   bun run dev
+   cd backend && docker-compose up -d
    ```
 
-2. **Backend:**
+2. **Start Backend:**
    ```bash
-   cd backend
-   docker-compose up -d
-   go run ./cmd/server
+   cd backend && go run ./cmd/server
    ```
 
-The frontend runs on `http://localhost:8080` and connects to the backend API.
+3. **Start Frontend:**
+   ```bash
+   cd frontend && bun install && bun run dev
+   ```
+
+Open `http://localhost:3000` (frontend). The API runs on `http://localhost:8080`.

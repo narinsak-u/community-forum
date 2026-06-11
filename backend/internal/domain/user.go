@@ -23,14 +23,14 @@ const (
 // This struct defines the data and behavior (methods) that are essential
 // to the business, regardless of how it is stored in the database.
 type User struct {
-	ID        uint
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Username  string
-	Email     string
-	Password  string // Hashed password
-	Avatar    string
-	Bio       string
-	Stacks    []string // Technology stacks the user is interested in
-	Role      string
+	ID        uint      `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	Password  string    `json:"-"`
+	Avatar    string    `json:"avatar"`
+	Bio       string    `json:"bio"`
+	Stacks    []string  `json:"stacks,omitempty"`
+	Role      string    `json:"role"`
 }

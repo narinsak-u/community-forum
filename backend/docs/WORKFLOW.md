@@ -5,6 +5,7 @@
 >
 > All file references use `path:line` notation relative to the `backend/`
 > directory. See [`OVERVIEW.md`](./OVERVIEW.md) for the structural overview.
+> Last updated: 2026-06-10.
 
 ---
 
@@ -23,9 +24,10 @@
    - [Comments (create / read-nested / delete)](#52-comments)
    - [Votes (upvote / downvote / retract)](#53-votes)
    - [User profile (read / update)](#54-user-profile)
-   - [Tags (list / create)](#55-tags)
-6. [Error handling flow](#6-error-handling-flow)
-7. [Cross-cutting concerns](#7-cross-cutting-concerns)
+    - [Tags (list / create)](#55-tags)
+    - [Chat (WebSocket + messages)](#56-chat-discussions)
+ 6. [Error handling flow](#6-error-handling-flow)
+ 7. [Cross-cutting concerns](#7-cross-cutting-concerns)
 
 ---
 
@@ -62,35 +64,42 @@ main() (cmd/server/main.go:29)
    |
    +-- 7. api := app.Group("/api/v1")                  (main.go:68)
    |
-   +-- 8. Wire adapters (outbound):                    (main.go:72-76)
-   |      - userRepo    := db.NewGORMUserRepository(db)
-   |      - threadRepo  := db.NewGORMThreadRepository(db)
-   |      - commentRepo := db.NewGORMCommentRepository(db)
-   |      - voteRepo    := db.NewGORMVoteRepository(db)
-   |      - tagRepo     := db.NewGORMTagRepository(db)
-   |
-   +-- 9. Wire use cases (services):                   (main.go:79-84)
-   |      - authService    := usecase.NewAuthService(userRepo)
-   |      - userService    := usecase.NewUserService(userRepo)
-   |      - threadService  := usecase.NewThreadService(threadRepo)
-   |      - commentService := usecase.NewCommentService(commentRepo, threadRepo)
-   |      - voteService    := usecase.NewVoteService(voteRepo, threadRepo, commentRepo)
-   |      - tagService     := usecase.NewTagService(tagRepo)
-   |
-   +-- 10. Wire handlers (inbound adapters):          (main.go:87-92)
-   |      - authHandler    := handlers.NewAuthHandler(authService, sessionManager)
-   |      - threadHandler  := handlers.NewThreadHandler(threadService, sessionManager)
-   |      - commentHandler := handlers.NewCommentHandler(commentService, sessionManager)
-   |      - voteHandler    := handlers.NewVoteHandler(voteService, sessionManager)
-   |      - userHandler    := handlers.NewUserHandler(userService, threadService, sessionManager)
-   |      - tagHandler     := handlers.NewTagHandler(tagService, sessionManager)
-   |
-   +-- 11. Register auth-rate limiter                  (main.go:96-103)
+    +-- 8. Wire adapters (outbound):                    (main.go:72-76)
+    |      - userRepo    := db.NewGORMUserRepository(db)
+    |      - threadRepo  := db.NewGORMThreadRepository(db)
+    |      - commentRepo := db.NewGORMCommentRepository(db)
+    |      - voteRepo    := db.NewGORMVoteRepository(db)
+    |      - tagRepo     := db.NewGORMTagRepository(db)
+    |      - chatRepo    := db.NewGORMChatRepository(db)
+    |
+    +-- 9. Wire use cases (services):                   (main.go:79-84)
+    |      - authService    := usecase.NewAuthService(userRepo)
+    |      - userService    := usecase.NewUserService(userRepo)
+    |      - threadService  := usecase.NewThreadService(threadRepo)
+    |      - commentService := usecase.NewCommentService(commentRepo, threadRepo)
+    |      - voteService    := usecase.NewVoteService(voteRepo, threadRepo, commentRepo)
+    |      - tagService     := usecase.NewTagService(tagRepo)
+    |      - chatService    := usecase.NewChatService(chatRepo)
+    |
+    +-- 10. Wire handlers (inbound adapters):          (main.go:87-92)
+    |      - authHandler    := handlers.NewAuthHandler(authService, sessionManager)
+    |      - threadHandler  := handlers.NewThreadHandler(threadService, sessionManager)
+    |      - commentHandler := handlers.NewCommentHandler(commentService, sessionManager)
+    |      - voteHandler    := handlers.NewVoteHandler(voteService, sessionManager)
+    |      - userHandler    := handlers.NewUserHandler(userService, threadService, sessionManager)
+    |      - tagHandler     := handlers.NewTagHandler(tagService, sessionManager)
+    |      - chatHandler    := handlers.NewChatHandler(chatService, userService, sessionManager)
+    |
+    +-- 11. Register auth-rate limiter                  (main.go:96-103)
    |      - 10 req/min per IP, SkipSuccessfulRequests=true
    |
-   +-- 12. Register all /api/v1/* routes               (main.go:104-129)
-   |
-   +-- 13. app.Listen(":" + cfg.Port)                  (main.go:133)
+    +-- 12. Register all /api/v1/* routes               (main.go:104-129)
+    |
+    +-- 13. Register WebSocket route                    (main.go:137)
+    |      - app.Get("/ws/chat", chatHandler.UpgradeHandler,
+    |          websocket.New(chatHandler.HandleWebSocket))
+    |
+    +-- 14. app.Listen(":" + cfg.Port)                  (main.go:133)
           - log.Printf("Server starting on http://localhost:%s", cfg.Port)
           - log.Fatalf on bind error
 ```
@@ -647,7 +656,109 @@ handler  (handlers/user.go:137-203)
   +-- 200 { threads, pagination: { page, pageSize, totalItems, totalPages } }
 ```
 
-### 5.5 Tags
+### 5.6 Chat (Discussions)
+
+Chat messages are sent and received over a persistent WebSocket connection
+at `GET /ws/chat`. The handler manages an in-memory connection pool for
+broadcasting and online presence.
+
+#### WsChat protocol  (`GET /ws/chat`, WebSocket, authenticated via JWT cookie)
+
+- Authenticated via `forge_token` JWT cookie (same as HTTP routes).
+- Upgrade denied (401 close code) if token is missing or invalid.
+- On connect: sends `init` with last 15 messages + full online user list.
+- Rate-limit: max 1 incoming message per 500 ms per connection.
+- Messages are persisted via `ChatService.SendMessage` before broadcast.
+
+#### Message persistence  (`POST`-equivalent via WS `message` type)
+
+```
+Client WS (type: "message", content: "hello")
+   |
+   v
+ChatHandler.HandleWebSocket  (handlers/chat.go:79-161)
+   |
+   +-- 1. Extract JWT from cookie / Authorization header
+   |      (handlers/chat.go:94-104)
+   |
+   +-- 2. lib.VerifyJWT → userID
+   |      On failure: CloseMessage(4001, "unauthorized"), close conn
+   |
+   +-- 3. Rate-limit check: time.Since(lastMessageTime) < 500ms → skip
+   |
+   +-- 4. ChatService.SendMessage(ctx, userID, content)
+   |      (usecase/chat_service.go:20-38)
+   |      +-- validate content not empty
+   |      +-- validate content ≤ 2000 chars
+   |      +-- repo.Create(ctx, msg)
+   |           (adapters/db/chat_repository.go:19-33)
+   |           - INSERT chat_messages (content, author_id)
+   |           - Re-Preload("Author") → populate msg.Author
+   |           - Return populated domain.ChatMessage
+   |
+   +-- 5. Broadcast to all connected clients:
+         wsOutgoing{Type: "message", Message: chatMsg}
+```
+
+#### Pagination (infinite scroll backward)
+
+```
+Client WS (type: "load_more", before: 42)
+   |
+   v
+ChatHandler.HandleWebSocket
+   |
+   +-- ChatService.GetMessagesBefore(ctx, msg.Before, 15)
+   |      (usecase/chat_service.go:46-50)
+   |      +-- Clamp limit to 15 (default) / 50 (max)
+   |      +-- repo.GetBefore(ctx, beforeID, limit)
+   |           (adapters/db/chat_repository.go:40-55)
+   |           - WHERE id < beforeID
+   |           - ORDER BY id DESC LIMIT limit
+   |           - Reverse to chronological order
+   |
+   +-- Write back to requesting client only:
+         wsOutgoing{Type: "load_more", Messages: older}
+```
+
+#### Online presence
+
+Uses an in-memory `sync.Mutex` map (handlers/chat.go:61-62):
+
+```go
+clients map[uint][]*websocket.Conn  // userID -> connection(s)
+users   map[uint]*onlineUser        // userID -> presence info
+```
+
+On connect: fetch user profile via `UserService.GetUserByID`, broadcast
+`user_joined`. On disconnect (read error or close): remove from both maps,
+broadcast `user_left`.
+
+#### WS message types
+
+| Direction | Type | Trigger |
+|---|---|---|
+| Server → Client | `init` | New connection |
+| Server → Client | `message` | Another user sends a message |
+| Server → Client | `user_joined` | User comes online |
+| Server → Client | `user_left` | User goes offline |
+| Server → Client | `load_more` | Response to pagination request |
+| Client → Server | `message` | User sends a chat message |
+| Client → Server | `load_more` | User scrolls to top |
+
+#### ChatMessage model  (models.go:127-135)
+
+```
+ChatMessage
+  ID        uint    (PK)
+  CreatedAt time.Time
+  UpdatedAt time.Time
+  Content   string  (text, not null)
+  AuthorID  uint    (FK → users.id, index)
+  Author    User    (Preload)
+```
+
+
 
 #### List  (`GET /api/v1/tags`, public)
 
@@ -813,13 +924,36 @@ through the layers.
 - `cmd/server/main.go` is the **only** package that knows about every
   layer.
 
-### 7.11 Tests
+### 7.11 WebSocket connection management
+- WebSocket is mounted on the **same port** as the HTTP API via
+  `gofiber/contrib/websocket`, which wraps `gorilla/websocket`.
+- Route: `app.Get("/ws/chat", chatHandler.UpgradeHandler, websocket.New(...))`
+- The `UpgradeHandler` verifies the request is a WebSocket upgrade and
+  sets `c.Locals("allowed", true)` before calling `c.Next()`.
+- Authentication is re-extracted from the cookie inside `HandleWebSocket`
+  (not from `c.Locals`) because the Fiber context is not fully preserved
+  across WebSocket upgrade.
+- Connections are tracked per-user-ID in a `map[uint][]*websocket.Conn`,
+  allowing multiple browser tabs for the same user.
+- Online presence is broadcast on connect (`user_joined`) and disconnect
+  (`user_left`). When a user has zero remaining connections, they are
+  removed from the online list.
+- No server-side message history beyond what's in PostgreSQL; clients
+  request older messages via the `load_more` WS command.
+
+### 7.12 ChatMessage auto-migration
+- `ChatMessage` is included in the `AutoMigrate` call (config.go:71),
+  alongside the other five models. GORM creates the `chat_messages` table
+  with the `id`, `created_at`, `updated_at`, `content`, `author_id`
+  columns and foreign key to `users`.
+
+### 7.13 Tests
 - Test files live in `tests/` and use the `package` names of the files
   they test. They use `DATA-DOG/go-sqlmock` for unit-level DB mocking
   and `stretchr/testify` for assertions.
 - Tests do not require a running database.
 
-### 7.12 Known limitations
+### 7.14 Known limitations
 - `JWT_EXPIRY` env var is read but not honored (hard-coded 72h in
   config.go:45).
 - No token revocation / blocklist -- sign-out only clears the cookie.
