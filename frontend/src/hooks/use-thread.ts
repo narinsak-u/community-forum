@@ -6,7 +6,7 @@ import { queryKeys } from "./use-query-keys";
 export function useThread(slug: string) {
   return useQuery({
     queryKey: queryKeys.threads.detail(slug),
-    queryFn: () => api.get<ThreadDetail>("/threads/" + slug),
+    queryFn: () => api.get<ThreadDetail>(`/threads/${slug}`),
     staleTime: 60 * 1000,
   });
 }
