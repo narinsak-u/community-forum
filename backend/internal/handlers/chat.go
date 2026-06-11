@@ -11,6 +11,7 @@ import (
 	"community-forum/backend/internal/lib"
 	"community-forum/backend/internal/middleware"
 	"community-forum/backend/internal/ports"
+	"community-forum/backend/internal/usecase"
 
 	"github.com/gofiber/contrib/websocket"
 )
@@ -107,7 +108,7 @@ func (h *ChatHandler) HandleWebSocket(c *websocket.Conn) {
 		h.broadcast(wsOutgoing{Type: "user_joined", User: user})
 	}
 
-	recent, err := h.Service.GetRecentMessages(context.Background(), 15)
+	recent, err := h.Service.GetRecentMessages(context.Background(), usecase.DefaultChatLimit)
 	if err != nil {
 		log.Printf("chat: GetRecentMessages error: %v", err)
 	}
@@ -174,7 +175,7 @@ func (h *ChatHandler) HandleWebSocket(c *websocket.Conn) {
 			h.broadcast(wsOutgoing{Type: "message", Message: chatMsg})
 
 		case "load_more":
-			older, err := h.Service.GetMessagesBefore(context.Background(), msg.Before, 15)
+			older, err := h.Service.GetMessagesBefore(context.Background(), msg.Before, usecase.DefaultChatLimit)
 			if err != nil {
 				continue
 			}
@@ -192,11 +193,15 @@ func (h *ChatHandler) broadcast(msg wsOutgoing) {
 		log.Printf("chat broadcast marshal error: %v", err)
 		return
 	}
+
 	h.mu.Lock()
-	defer h.mu.Unlock()
+	allConns := make([]*websocket.Conn, 0)
 	for _, conns := range h.clients {
-		for _, conn := range conns {
-			_ = conn.WriteMessage(websocket.TextMessage, data)
-		}
+		allConns = append(allConns, conns...)
+	}
+	h.mu.Unlock()
+
+	for _, conn := range allConns {
+		_ = conn.WriteMessage(websocket.TextMessage, data)
 	}
 }

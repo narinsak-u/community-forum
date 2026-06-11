@@ -9,6 +9,8 @@ import (
 	"community-forum/backend/internal/ports"
 )
 
+const DefaultChatLimit = 15
+
 type ChatService struct {
 	repo ports.ChatRepository
 }
@@ -38,14 +40,14 @@ func (s *ChatService) SendMessage(ctx context.Context, authorID uint, content st
 
 func (s *ChatService) GetRecentMessages(ctx context.Context, limit int) ([]domain.ChatMessage, error) {
 	if limit <= 0 || limit > 50 {
-		limit = 15
+		limit = DefaultChatLimit
 	}
 	return s.repo.GetRecent(ctx, limit)
 }
 
 func (s *ChatService) GetMessagesBefore(ctx context.Context, beforeID uint, limit int) ([]domain.ChatMessage, error) {
 	if limit <= 0 || limit > 50 {
-		limit = 15
+		limit = DefaultChatLimit
 	}
 	return s.repo.GetBefore(ctx, beforeID, limit)
 }
