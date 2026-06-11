@@ -13,7 +13,6 @@ import (
 	"community-forum/backend/internal/ports"
 
 	"github.com/gofiber/contrib/websocket"
-	"github.com/gofiber/fiber/v2"
 )
 
 type wsMessage struct {
@@ -56,14 +55,6 @@ func NewChatHandler(service ports.ChatService, userService ports.UserService, sm
 	}
 }
 
-func (h *ChatHandler) UpgradeHandler(c *fiber.Ctx) error {
-	if websocket.IsWebSocketUpgrade(c) {
-		c.Locals("allowed", true)
-		return c.Next()
-	}
-	return fiber.ErrUpgradeRequired
-}
-
 func (h *ChatHandler) HandleWebSocket(c *websocket.Conn) {
 	tokenStr := c.Cookies("forge_token")
 	if tokenStr == "" {
@@ -73,6 +64,7 @@ func (h *ChatHandler) HandleWebSocket(c *websocket.Conn) {
 		}
 	}
 	if tokenStr == "" {
+		log.Printf("chat: missing token, closing")
 		_ = c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4001, "unauthorized"))
 		c.Close()
 		return
@@ -80,12 +72,14 @@ func (h *ChatHandler) HandleWebSocket(c *websocket.Conn) {
 
 	claims, err := lib.VerifyJWT(tokenStr, h.SessionManager.Secret)
 	if err != nil {
+		log.Printf("chat: invalid token: %v", err)
 		_ = c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4001, "unauthorized"))
 		c.Close()
 		return
 	}
 
 	userID := claims.UserID
+	log.Printf("chat: user %d connected", userID)
 
 	profile, _ := h.UserService.GetUserByID(context.Background(), userID)
 	displayName := ""
@@ -96,11 +90,12 @@ func (h *ChatHandler) HandleWebSocket(c *websocket.Conn) {
 	}
 	user := &onlineUser{ID: userID, Username: displayName, Avatar: displayAvatar}
 
+	var isNewUser bool
 	h.mu.Lock()
 	h.clients[userID] = append(h.clients[userID], c)
 	if _, exists := h.users[userID]; !exists {
 		h.users[userID] = user
-		h.broadcast(wsOutgoing{Type: "user_joined", User: user})
+		isNewUser = true
 	}
 	activeUsers := make([]onlineUser, 0, len(h.users))
 	for _, u := range h.users {
@@ -108,14 +103,26 @@ func (h *ChatHandler) HandleWebSocket(c *websocket.Conn) {
 	}
 	h.mu.Unlock()
 
-	recent, _ := h.Service.GetRecentMessages(context.Background(), 15)
+	if isNewUser {
+		h.broadcast(wsOutgoing{Type: "user_joined", User: user})
+	}
+
+	recent, err := h.Service.GetRecentMessages(context.Background(), 15)
+	if err != nil {
+		log.Printf("chat: GetRecentMessages error: %v", err)
+	}
 	initMsg := wsOutgoing{
 		Type:     "init",
 		Messages: recent,
 		Users:    activeUsers,
 	}
-	if data, err := json.Marshal(initMsg); err == nil {
-		_ = c.WriteMessage(websocket.TextMessage, data)
+	data, err := json.Marshal(initMsg)
+	if err != nil {
+		log.Printf("chat: marshal init error: %v", err)
+	} else {
+		if err := c.WriteMessage(websocket.TextMessage, data); err != nil {
+			log.Printf("chat: write init error: %v", err)
+		}
 	}
 
 	lastMessageTime := time.Now()
@@ -128,13 +135,18 @@ func (h *ChatHandler) HandleWebSocket(c *websocket.Conn) {
 				break
 			}
 		}
-		if len(h.clients[userID]) == 0 {
+		shouldBcast := len(h.clients[userID]) == 0
+		if shouldBcast {
 			delete(h.clients, userID)
 			delete(h.users, userID)
-			h.broadcast(wsOutgoing{Type: "user_left", User: user})
 		}
 		h.mu.Unlock()
+
+		if shouldBcast {
+			h.broadcast(wsOutgoing{Type: "user_left", User: user})
+		}
 		c.Close()
+		log.Printf("chat: user %d disconnected", userID)
 	}()
 
 	for {

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRequireAuth } from "@/hooks/use-require-auth";
+import { useMe } from "@/hooks/use-auth";
 import { useChat, type ChatMessage, type OnlineUser } from "@/hooks/use-chat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Send } from "lucide-react";
@@ -9,7 +10,15 @@ import { timeAgo } from "@/lib/utils";
 
 export default function DiscussionsPage() {
   const { requireAuth } = useRequireAuth();
-  const { messages, onlineUsers, sendMessage, loadMore, isConnected, isLoading } = useChat();
+  const { data: currentUser } = useMe();
+  const {
+    messages,
+    onlineUsers,
+    sendMessage,
+    loadMore,
+    isConnected,
+    isLoading,
+  } = useChat();
 
   useEffect(() => {
     requireAuth({ redirect: "/discussions" });
@@ -81,17 +90,30 @@ export default function DiscussionsPage() {
             </p>
           ) : (
             messages.map((msg: ChatMessage) => {
+              const isOwn = currentUser && msg.author?.id === currentUser.id;
               const initials = (msg.author?.username || "??")
                 .replace("@", "")
                 .slice(0, 2)
                 .toUpperCase();
               return (
-                <div key={msg.id} className="flex gap-3">
+                <div
+                  key={msg.id}
+                  className={"flex gap-3 " + (isOwn ? "flex-row-reverse" : "")}
+                >
                   <div className="h-8 w-8 rounded-full bg-gradient-signal grid place-items-center text-[10px] font-bold text-primary-foreground shrink-0">
                     {initials}
                   </div>
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                  <div
+                    className={
+                      "space-y-1 min-w-0 " + (isOwn ? "text-right" : "")
+                    }
+                  >
+                    <div
+                      className={
+                        "flex items-center gap-2 " +
+                        (isOwn ? "flex-row-reverse" : "")
+                      }
+                    >
                       <span className="text-xs font-semibold text-foreground">
                         {msg.author?.username || "unknown"}
                       </span>
@@ -99,7 +121,12 @@ export default function DiscussionsPage() {
                         {msg.created_at ? timeAgo(msg.created_at) : ""}
                       </span>
                     </div>
-                    <p className="text-sm text-foreground/90 leading-relaxed">
+                    <p
+                      className={
+                        "text-sm leading-relaxed " +
+                        (isOwn ? "text-foreground/90" : "text-foreground/90")
+                      }
+                    >
                       {msg.content}
                     </p>
                   </div>
@@ -131,10 +158,11 @@ export default function DiscussionsPage() {
         </div>
       </div>
 
-      <div className="w-56 border-l border-border/60 flex flex-col shrink-0">
-        <div className="border-b border-border/60 px-5 py-4">
+      <div className="w-56 border-l border-border/60 md:flex-col shrink-0 hidden md:flex">
+        <div className="border-b border-border/60 px-5 py-4 min-h-[52.8px]">
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Online <span className="text-foreground">— {onlineUsers.length}</span>
+            Online{" "}
+            <span className="text-foreground">— {onlineUsers.length}</span>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto py-2">

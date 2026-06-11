@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { toast } from "sonner";
 
 export interface ChatMessage {
   id: number;
@@ -26,6 +27,7 @@ interface UseChatReturn {
   loadMore: () => void;
   isConnected: boolean;
   isLoading: boolean;
+  error: string | null;
 }
 
 export function useChat(): UseChatReturn {
@@ -33,21 +35,30 @@ export function useChat(): UseChatReturn {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const retriesRef = useRef(0);
   const maxRetries = 3;
   const oldestIdRef = useRef<number | null>(null);
 
   const connect = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.close();
+    }
+
     const ws = new WebSocket(WS_URL);
+    const isCurrent = () => wsRef.current === ws;
     wsRef.current = ws;
 
     ws.onopen = () => {
+      if (!isCurrent()) return;
+      console.log("chat: WebSocket connected to", WS_URL);
       setIsConnected(true);
       retriesRef.current = 0;
     };
 
     ws.onmessage = (event) => {
+      if (!isCurrent()) return;
       try {
         const data = JSON.parse(event.data);
         switch (data.type) {
@@ -86,23 +97,26 @@ export function useChat(): UseChatReturn {
     };
 
     ws.onclose = () => {
+      if (!isCurrent()) return;
       setIsConnected(false);
       if (retriesRef.current < maxRetries) {
         retriesRef.current++;
         const delay = Math.pow(2, retriesRef.current - 1) * 1000;
         setTimeout(connect, delay);
+      } else {
+        setError("Could not connect to chat server");
+        setIsLoading(false);
+        toast.error("Chat connection failed. Please reload and try again.");
       }
-    };
-
-    ws.onerror = () => {
-      ws.close();
     };
   }, []);
 
   useEffect(() => {
     connect();
     return () => {
-      wsRef.current?.close();
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.close();
+      }
     };
   }, [connect]);
 
@@ -120,5 +134,5 @@ export function useChat(): UseChatReturn {
     }
   }, []);
 
-  return { messages, onlineUsers, sendMessage, loadMore, isConnected, isLoading };
+  return { messages, onlineUsers, sendMessage, loadMore, isConnected, isLoading, error };
 }

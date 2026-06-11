@@ -134,7 +134,7 @@ func main() {
 	api.Get("/tags", tagHandler.ListTagsHandler)
 	api.Post("/tags", sessionManager.RequireAuth, tagHandler.CreateTagHandler)
 
-	app.Get("/ws/chat", chatHandler.UpgradeHandler, websocket.New(chatHandler.HandleWebSocket))
+	app.Get("/ws/chat", websocket.New(chatHandler.HandleWebSocket))
 
 	// Step 12: Start the server on the configured port.
 	log.Printf("Server starting on http://localhost:%s", cfg.Port)
