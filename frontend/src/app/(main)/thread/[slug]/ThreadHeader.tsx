@@ -1,49 +1,50 @@
 import Link from "next/link";
 import { Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { formatCount } from "@/lib/utils";
 
 interface ThreadHeaderProps {
-  title?: string;
-  tagName?: string;
-  authorUsername?: string;
-  authorInitials?: string;
-  createdAt?: string;
-  viewCount: number;
-  repliesCount: number;
-  upvotes: number;
-  downvotes: number;
+  thread: {
+    title?: string;
+    tags?: { name: string }[];
+    author?: {
+      id?: number;
+      username?: string;
+    };
+    created_at?: string;
+    view_count?: number;
+    replies_count?: number;
+    upvotes?: number;
+    downvotes?: number;
+  };
   slug?: string;
-  authorId?: number;
   currentUserId?: number;
+  authorInitials?: string;
 }
 
 export function ThreadHeader({
-  title,
-  tagName,
-  authorUsername,
-  authorInitials,
-  createdAt,
-  viewCount,
-  repliesCount,
-  upvotes,
-  downvotes,
+  thread,
   slug,
-  authorId,
   currentUserId,
+  authorInitials,
 }: ThreadHeaderProps) {
+  const title = thread?.title;
+  const tagName = thread?.tags?.[0]?.name;
+  const authorUsername = thread?.author?.username;
+  const authorId = thread?.author?.id;
+  const createdAt = thread?.created_at;
+  const viewCount = thread?.view_count || 0;
+  const repliesCount = thread?.replies_count || 0;
+  const upvotes = thread?.upvotes || 0;
+  const downvotes = thread?.downvotes || 0;
+
   const trustIndex =
     upvotes + downvotes > 0
       ? Math.round((upvotes / (upvotes + downvotes)) * 100) + "%"
       : "98%";
 
-  const formatCount = (n: number) => {
-    if (n >= 1000) return (n / 1000).toFixed(1) + "K";
-    return String(n);
-  };
-
   return (
     <>
-      {/* breadcrumbs */}
       <nav className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
         <span>Discussion</span>
         <span>/</span>

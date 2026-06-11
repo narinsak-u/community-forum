@@ -33,10 +33,20 @@ const ThreadsClient = ({
   const [sort, setSort] = useState("latest");
 
   const { data: currentUser } = useMe();
-  const featured = useFeaturedThread();
-  const trending = useTrendingThreads();
-  const allThreads = useThreads(page, 5, sort);
-  const myThreads = useMyThreads(currentUser?.username ?? "", page, 5);
+  const featured = useFeaturedThread(initialFeatured ?? undefined);
+  const trending = useTrendingThreads(
+    initialTrending ? { threads: initialTrending.threads } : undefined,
+  );
+  const initialThreadsData = initialThreads
+    ? ({ threads: initialThreads.threads, pagination: initialThreads.pagination } as const)
+    : undefined;
+  const allThreads = useThreads(page, 5, sort, {
+    initialData: initialThreadsData as any,
+    enabled: activeTab !== "my-posts",
+  });
+  const myThreads = useMyThreads(currentUser?.username ?? "", page, 5, {
+    enabled: activeTab === "my-posts",
+  });
   const threads = activeTab === "my-posts" ? myThreads : allThreads;
 
   const tabs = useMemo(() => {
@@ -59,16 +69,8 @@ const ThreadsClient = ({
   };
 
   const featuredThread = featured.data ?? initialFeatured;
-  const trendingData =
-    trending.data ??
-    (initialTrending ? { threads: initialTrending.threads } : undefined);
-  const threadData =
-    activeTab !== "my-posts"
-      ? (threads.data ??
-        (initialThreads
-          ? { ...initialThreads, isEmpty: !initialThreads.threads?.length }
-          : undefined))
-      : threads.data;
+  const trendingData = trending.data;
+  const threadData = activeTab !== "my-posts" ? threads.data : threads.data;
 
   const featuredSlug = featuredThread?.slug || "architectural-shift";
   const firstTag = featuredThread?.tags?.[0]?.name || "System Core";
@@ -107,6 +109,7 @@ const ThreadsClient = ({
                   fill
                   className="object-cover opacity-70 group-hover:opacity-90 transition-opacity"
                   sizes="(max-width: 1200px) 100vw, 800px"
+                  priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
               </div>

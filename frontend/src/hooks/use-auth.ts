@@ -17,8 +17,11 @@ export function useSignin() {
 
 export function useSignup() {
   return useMutation({
-    mutationFn: (data: { username: string; email: string; password: string }) =>
-      api.post<{ message: string }>("/auth/signup", data),
+    mutationFn: (data: { username: string; email: string; password: string }) => {
+      if (data.username.length < 3) throw new Error("Username must be at least 3 characters");
+      if (data.password.length < 6) throw new Error("Password must be at least 6 characters");
+      return api.post<{ message: string }>("/auth/signup", data);
+    },
   });
 }
 

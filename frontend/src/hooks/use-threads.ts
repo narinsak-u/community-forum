@@ -3,23 +3,25 @@ import { api } from "@/lib/api";
 import type { ThreadItem, ThreadDetail, ThreadsResponse } from "@/lib/mock-data";
 import { queryKeys } from "./use-query-keys";
 
-export function useTrendingThreads() {
+export function useTrendingThreads(initialData?: { threads: ThreadItem[] }) {
   return useQuery({
     queryKey: queryKeys.threads.trending,
     queryFn: () => api.get<{ threads: ThreadItem[] }>("/threads/trending"),
     staleTime: 5 * 60 * 1000,
+    initialData,
   });
 }
 
-export function useFeaturedThread() {
+export function useFeaturedThread(initialData?: ThreadDetail) {
   return useQuery({
     queryKey: queryKeys.threads.featured,
     queryFn: () => api.get<ThreadDetail>("/threads/featured"),
     staleTime: 5 * 60 * 1000,
+    initialData,
   });
 }
 
-export function useThreads(page = 1, pageSize = 5, sort = "latest") {
+export function useThreads(page = 1, pageSize = 5, sort = "latest", opts?: { initialData?: ThreadsResponse; enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.threads.list({ page, pageSize, sort }),
     queryFn: () =>
@@ -27,10 +29,12 @@ export function useThreads(page = 1, pageSize = 5, sort = "latest") {
         `/threads?page=${page}&pageSize=${pageSize}&sort=${sort}`
       ),
     staleTime: 60 * 1000,
+    initialData: opts?.initialData,
+    enabled: opts?.enabled ?? true,
   });
 }
 
-export function useMyThreads(username: string, page = 1, pageSize = 5) {
+export function useMyThreads(username: string, page = 1, pageSize = 5, opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...queryKeys.users.threads(username), { page, pageSize }],
     queryFn: () =>
@@ -38,6 +42,6 @@ export function useMyThreads(username: string, page = 1, pageSize = 5) {
         `/users/${username}/threads?page=${page}&pageSize=${pageSize}`
       ),
     staleTime: 60 * 1000,
-    enabled: !!username,
+    enabled: (opts?.enabled ?? true) && !!username,
   });
 }

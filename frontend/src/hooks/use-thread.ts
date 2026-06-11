@@ -42,7 +42,7 @@ export function useUpdateThread(slug: string) {
 
   return useMutation({
     mutationFn: (data: UpdateThreadData) =>
-      api.patch<ThreadDetail>("/threads/" + slug, data),
+      api.patch<ThreadDetail>(`/threads/${slug}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.threads.detail(slug) });
       queryClient.invalidateQueries({ queryKey: queryKeys.threads.all });
@@ -54,7 +54,7 @@ export function useDeleteThread(slug: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => api.delete<{ message: string }>("/threads/" + slug),
+    mutationFn: () => api.delete<{ message: string }>(`/threads/${slug}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.threads.all });
     },

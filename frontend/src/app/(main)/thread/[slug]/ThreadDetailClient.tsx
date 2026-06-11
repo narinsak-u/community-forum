@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMemo } from "react";
 import { SectionLabel } from "@/components/forge/SectionLabel";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +19,7 @@ import { useRequireAuth } from "@/hooks/use-require-auth";
 import { useMe } from "@/hooks/use-auth";
 import { ThreadHeader } from "./ThreadHeader";
 import { CommentSection } from "./CommentSection";
+import { ParticipantsPanel } from "./ParticipantsPanel";
 import { getInitials } from "@/lib/utils";
 
 const QUOTE =
@@ -34,15 +34,13 @@ const ThreadDetailClient = ({
   slug,
   initialThread,
 }: ThreadDetailClientProps) => {
-  const { data: thread, isLoading } = useThread(slug);
+  const { data: thread, isLoading, isError } = useThread(slug);
   const { data: currentUser } = useMe();
   const voteThread = useVoteThread(slug);
   const { requireAuth } = useRequireAuth();
 
   const currentThread = thread || initialThread;
-
-  const author = currentThread?.author;
-  const authorInitials = getInitials(author?.username);
+  const authorInitials = getInitials(currentThread?.author?.username);
 
   const handleVote = (value: number) => {
     if (
@@ -61,23 +59,6 @@ const ThreadDetailClient = ({
     );
   };
 
-  const participants = useMemo(() => {
-    const authorMap = new Map<number, { id: number; username: string; avatar: string }>();
-    if (currentThread?.author) {
-      authorMap.set(currentThread.author.id, currentThread.author);
-    }
-    const collectAuthors = (comments: any[]) => {
-      for (const c of comments || []) {
-        if (c.author && !authorMap.has(c.author.id)) {
-          authorMap.set(c.author.id, c.author);
-        }
-        collectAuthors(c.replies);
-      }
-    };
-    collectAuthors(currentThread?.comments || []);
-    return Array.from(authorMap.values()).slice(0, 5);
-  }, [currentThread?.comments, currentThread?.author]);
-
   if (isLoading && !initialThread) {
     return (
       <div className="px-8 py-10 max-w-[1100px] mx-auto space-y-8">
@@ -89,21 +70,26 @@ const ThreadDetailClient = ({
     );
   }
 
+  if (isError && !initialThread) {
+    return (
+      <div className="px-8 py-10 max-w-[1100px] mx-auto text-center">
+        <h2 className="heading-display text-2xl text-destructive mb-2">
+          CONNECTION_LOST
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Failed to load thread. The node may be offline or the signal was interrupted.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="px-8 py-10 max-w-[1100px] mx-auto space-y-8 animate-fade-up">
       <ThreadHeader
-        title={currentThread?.title}
-        tagName={currentThread?.tags?.[0]?.name}
-        authorUsername={author?.username}
-        authorInitials={authorInitials}
-        createdAt={currentThread?.created_at}
-        viewCount={currentThread?.view_count || 0}
-        repliesCount={currentThread?.replies_count || 0}
-        upvotes={currentThread?.upvotes || 0}
-        downvotes={currentThread?.downvotes || 0}
+        thread={currentThread}
         slug={slug}
-        authorId={author?.id}
         currentUserId={currentUser?.id}
+        authorInitials={authorInitials}
       />
 
       <div className="panel scanline relative overflow-hidden aspect-[2/1]">
@@ -201,38 +187,11 @@ const ThreadDetailClient = ({
               )}
             </ul>
           </div>
-          <div className="panel p-5 space-y-3">
-            <SectionLabel>Participants</SectionLabel>
-            <div className="flex flex-wrap gap-1">
-              {participants.map((p) => (
-                  <div
-                    key={p.id}
-                    className="h-8 w-8 rounded-full bg-secondary border border-border overflow-hidden"
-                    title={p.username}
-                  >
-                    {p.avatar ? (
-                      <Image
-                        src={p.avatar}
-                        alt={p.username}
-                        width={32}
-                        height={32}
-                        className="object-cover w-full h-full"
-                      />
-                    ) : (
-                      <div className="w-full h-full grid place-items-center text-[10px] font-bold text-primary">
-                        {getInitials(p.username)}
-                      </div>
-                    )}
-                  </div>
-                ));
-              )}
-              {currentThread?.replies_count > 0 && (
-                <div className="h-8 w-8 rounded-full bg-secondary border border-border grid place-items-center text-[10px] font-mono text-primary">
-                  +{currentThread.replies_count}
-                </div>
-              )}
-            </div>
-          </div>
+          <ParticipantsPanel
+            threadAuthor={currentThread?.author}
+            comments={currentThread?.comments}
+            repliesCount={currentThread?.replies_count || 0}
+          />
         </aside>
       </div>
 

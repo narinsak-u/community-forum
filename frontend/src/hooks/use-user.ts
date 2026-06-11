@@ -10,7 +10,7 @@ interface UserResponse {
 export function useUserProfile(username: string) {
   return useQuery({
     queryKey: queryKeys.users.profile(username),
-    queryFn: () => api.get<UserResponse>("/users/" + username).then((r) => r.user),
+    queryFn: () => api.get<UserResponse>(`/users/${username}`).then((r) => r.user),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -26,7 +26,7 @@ export function useUpdateProfile(username: string) {
 
   return useMutation({
     mutationFn: (data: UpdateProfileData) =>
-      api.patch<UserResponse>("/users/" + username, data),
+      api.patch<UserResponse>(`/users/${username}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users.profile(username) });
     },

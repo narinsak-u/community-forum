@@ -65,11 +65,6 @@ export const Sidebar = ({ showNewEntry = false }: { showNewEntry?: boolean }) =>
       )}
     >
       <div className="flex items-center h-14 px-3 border-b border-border/60">
-        {/*{!collapsed && (
-          <span className="text-xs uppercase tracking-[0.2em] text-primary font-bold">
-            NAV
-          </span>
-        )}*/}
         <button
           type="button"
           onClick={toggle}

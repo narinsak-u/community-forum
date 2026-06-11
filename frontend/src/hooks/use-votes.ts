@@ -19,7 +19,7 @@ export function useVoteThread(slug: string) {
 
   return useMutation({
     mutationFn: (data: VoteData) =>
-      api.post<VoteResponse>("/threads/" + slug + "/vote", data),
+      api.post<VoteResponse>(`/threads/${slug}/vote`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.threads.detail(slug) });
       queryClient.invalidateQueries({ queryKey: queryKeys.threads.all });
@@ -32,7 +32,7 @@ export function useVoteComment(threadSlug: string) {
 
   return useMutation({
     mutationFn: ({ commentId, value }: { commentId: number; value: number }) =>
-      api.post<VoteResponse>("/comments/" + commentId + "/vote", { value }),
+      api.post<VoteResponse>(`/comments/${commentId}/vote`, { value }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.threads.detail(threadSlug) });
     },

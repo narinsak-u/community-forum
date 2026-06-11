@@ -52,7 +52,6 @@ export function useChat(): UseChatReturn {
 
     ws.onopen = () => {
       if (!isCurrent()) return;
-      console.log("chat: WebSocket connected to", WS_URL);
       setIsConnected(true);
       retriesRef.current = 0;
     };

@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -35,10 +34,7 @@ export function EntryEditor({
   onViewModeChange,
   footer,
 }: EntryEditorProps) {
-  const previewTitle = useMemo(
-    () => (title || "NEW_ENTRY").replace(/\s+/g, "_").toUpperCase(),
-    [title],
-  );
+  const previewTitle = (title || "NEW_ENTRY").replace(/\s+/g, "_").toUpperCase();
 
   return (
     <>
@@ -89,28 +85,20 @@ export function EntryEditor({
               DRAFT_LIVE
             </span>
             <div className="flex border border-border rounded-sm overflow-hidden text-[10px] uppercase tracking-[0.18em]">
-              <button
-                type="button"
-                onClick={() => onViewModeChange("split")}
-                className={`px-3 py-1.5 transition-colors ${
-                  viewMode === "split"
-                    ? "bg-primary text-primary-foreground font-bold"
-                    : "text-muted-foreground hover:bg-secondary"
-                }`}
-              >
-                SPLIT
-              </button>
-              <button
-                type="button"
-                onClick={() => onViewModeChange("full")}
-                className={`px-3 py-1.5 transition-colors ${
-                  viewMode === "full"
-                    ? "bg-primary text-primary-foreground font-bold"
-                    : "text-muted-foreground hover:bg-secondary"
-                }`}
-              >
-                FULL
-              </button>
+              {(["split", "full"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => onViewModeChange(mode)}
+                  className={`px-3 py-1.5 transition-colors ${
+                    viewMode === mode
+                      ? "bg-primary text-primary-foreground font-bold"
+                      : "text-muted-foreground hover:bg-secondary"
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
             </div>
           </div>
         </div>

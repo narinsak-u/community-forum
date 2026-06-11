@@ -18,7 +18,7 @@ export function useCreateComment(slug: string) {
 
   return useMutation({
     mutationFn: (data: CreateCommentData) =>
-      api.post<CommentResponse>("/threads/" + slug + "/comments", data),
+      api.post<CommentResponse>(`/threads/${slug}/comments`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.threads.detail(slug) });
     },
