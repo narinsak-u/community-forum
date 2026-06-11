@@ -220,12 +220,12 @@ const ThreadDetailClient = ({
                       />
                     ) : (
                       <div className="w-full h-full grid place-items-center text-[10px] font-bold text-primary">
-                        {p.username.replace("@", "").slice(0, 2).toUpperCase()}
+                        {getInitials(p.username)}
                       </div>
                     )}
                   </div>
                 ));
-              })()}
+              )}
               {currentThread?.replies_count > 0 && (
                 <div className="h-8 w-8 rounded-full bg-secondary border border-border grid place-items-center text-[10px] font-mono text-primary">
                   +{currentThread.replies_count}
